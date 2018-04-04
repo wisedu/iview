@@ -7,7 +7,7 @@
         <collapse-transition v-if="mode === 'vertical'">
             <ul :class="[prefixCls]" v-show="opened"><slot></slot></ul>
         </collapse-transition>
-        <transition name="slide-up" v-else>
+        <transition name="transition-drop" v-else>
             <Drop
                 v-show="opened"
                 placement="bottom"
