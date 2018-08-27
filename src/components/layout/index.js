@@ -1,4 +1,12 @@
-import Row from './row.vue';
-import Col from './col.vue';
+import Layout from './layout.vue';
+import Header from './header.vue';
+import Sider from './sider.vue';
+import Content from './content.vue';
+import Footer from './footer.vue';
 
-export { Row, Col };
+Layout.Header = Header;
+Layout.Sider = Sider;
+Layout.Content = Content;
+Layout.Footer = Footer;
+
+export default Layout; 

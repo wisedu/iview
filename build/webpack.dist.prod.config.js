@@ -1,7 +1,14 @@
-var path = require('path');
-var webpack = require('webpack');
+const path = require('path');
+const webpack = require('webpack');
+const merge = require('webpack-merge');
+const webpackBaseConfig = require('./webpack.base.config.js');
+const CompressionPlugin = require('compression-webpack-plugin');
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
-module.exports = {
+process.env.NODE_ENV = 'production';
+
+module.exports = merge(webpackBaseConfig, {
+    devtool: 'source-map',
     entry: {
         main: './src/index.js'
     },
@@ -21,42 +28,21 @@ module.exports = {
             amd: 'vue'
         }
     },
-    resolve: {
-        extensions: ['', '.js', '.vue']
-    },
-    module: {
-        loaders: [{
-            test: /\.vue$/,
-            loader: 'vue'
-        }, {
-            test: /\.js$/,
-            loader: 'babel',
-            exclude: /node_modules/
-        }, {
-            test: /\.css$/,
-            loader: 'style!css!autoprefixer'
-        }, {
-            test: /\.less$/,
-            loader: 'style!css!less'
-        }, {
-            test: /\.(gif|jpg|png|woff|svg|eot|ttf)\??.*$/,
-            loader: 'url?limit=8192'
-        }, {
-            test: /\.(html|tpl)$/,
-            loader: 'vue-html'
-        }]
-    },
     plugins: [
+        // @todo
         new webpack.DefinePlugin({
-            'process.env': {
-                NODE_ENV: '"production"'
-            }
+            'process.env.NODE_ENV': '"production"'
         }),
-        new webpack.optimize.UglifyJsPlugin({
-            compress: {
-                warnings: false
-            }
+        new UglifyJsPlugin({
+            parallel: true,
+            sourceMap: true,
         }),
-        new webpack.optimize.OccurenceOrderPlugin()
+        new CompressionPlugin({
+            asset: '[path].gz[query]',
+            algorithm: 'gzip',
+            test: /\.(js|css)$/,
+            threshold: 10240,
+            minRatio: 0.8
+        })
     ]
-}
+});

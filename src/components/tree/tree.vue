@@ -1,50 +1,34 @@
 <template>
-    <ul :class="classes">
-        <li v-for="item in data" :class="itemCls(item)">
-            <span :class="arrowCls(item)" @click="setExpand(item.disabled, $index)">
-                <Icon type="arrow-right-b"></Icon>
-            </span>
-            <Checkbox
-                v-if="showCheckbox"
-                :checked="item.checked && item.childrenCheckedStatus == 2"
-                :disabled="item.disabled || item.disableCheckbox"
-                :indeterminate="item.checked && item.childrenCheckedStatus == 1"
-                @click.prevent="setCheck(item.disabled||item.disableCheckbox,$index)"></Checkbox>
-            <a :class="titleCls(item)" @click="setSelect(item.disabled, $index)">
-                <span :class="[prefixCls + '-title']" v-html="item.title"></span>
-            </a>
-            <tree
-                v-if="!item.isLeaf"
-                v-show="item.expand"
-                :class="expandCls(item)"
-                :data.sync="item.children"
-                :key="this.key+'.'+$index"
-                :multiple="multiple"
-                :show-checkbox="showCheckbox"
-                transition="slide-up"></tree>
-        </li>
-    </ul>
+    <div :class="prefixCls">
+        <Tree-node
+            v-for="(item, i) in stateTree"
+            :key="i"
+            :data="item"
+            visible
+            :multiple="multiple"
+            :show-checkbox="showCheckbox"
+            :children-key="childrenKey">
+        </Tree-node>
+        <div :class="[prefixCls + '-empty']" v-if="!stateTree.length">{{ localeEmptyText }}</div>
+    </div>
 </template>
 <script>
-    import Icon from '../icon/icon.vue';
-    import Checkbox from '../checkbox/checkbox.vue';
-    import { t } from '../../locale';
+    import TreeNode from './node.vue';
+    import Emitter from '../../mixins/emitter';
+    import Locale from '../../mixins/locale';
 
     const prefixCls = 'ivu-tree';
 
     export default {
-        name: 'tree',
-        components: { Icon, Checkbox },
+        name: 'Tree',
+        mixins: [ Emitter, Locale ],
+        components: { TreeNode },
         props: {
             data: {
                 type: Array,
                 default () {
                     return [];
                 }
-            },
-            key: {
-                type: String,
-                default: '0'
             },
             multiple: {
                 type: Boolean,
@@ -55,219 +39,147 @@
                 default: false
             },
             emptyText: {
+                type: String
+            },
+            childrenKey: {
                 type: String,
-                default () {
-                    return t('i.tree.emptyText');
-                }
+                default: 'children'
+            },
+            loadData: {
+                type: Function
+            },
+            render: {
+                type: Function
             }
         },
         data () {
             return {
-                prefixCls: prefixCls
+                prefixCls: prefixCls,
+                stateTree: this.data,
+                flatState: [],
             };
         },
-        computed: {
-            classes () {
-                if (this.key === '0') {
-                    return this.prefixCls;
-                } else {
-                    return `${this.prefixCls}-child-tree`;
+        watch: {
+            data: {
+                deep: true,
+                handler () {
+                    this.stateTree = this.data;
+                    this.flatState = this.compileFlatState();
+                    this.rebuildTree();
                 }
             }
         },
-        watch: {
-            data(){
-                if (this.key === '0') {
-                    this.setKey();
-                    this.preHandle();
+        computed: {
+            localeEmptyText () {
+                if (typeof this.emptyText === 'undefined') {
+                    return this.t('i.tree.emptyText');
+                } else {
+                    return this.emptyText;
                 }
-            }
+            },
         },
         methods: {
-            itemCls (item) {
-                return [
-                    {
-                        [`${prefixCls}-item-disabled`]: item.disabled
+            compileFlatState () { // so we have always a relation parent/children of each node
+                let keyCounter = 0;
+                let childrenKey = this.childrenKey;
+                const flatTree = [];
+                function flattenChildren(node, parent) {
+                    node.nodeKey = keyCounter++;
+                    flatTree[node.nodeKey] = { node: node, nodeKey: node.nodeKey };
+                    if (typeof parent != 'undefined') {
+                        flatTree[node.nodeKey].parent = parent.nodeKey;
+                        flatTree[parent.nodeKey][childrenKey].push(node.nodeKey);
                     }
-                ];
-            },
-            arrowCls (item) {
-                return [
-                    `${this.prefixCls}-switcher`,
-                    {
-                        [`${this.prefixCls}-switcher-disabled`]: item.disabled,
-                        [`${this.prefixCls}-noline_close`]: !item.expand && !item.isLeaf,
-                        [`${this.prefixCls}-noline_open`]: item.expand && !item.isLeaf,
-                        [`${this.prefixCls}-switcher-noop`]: item.isLeaf
-                    }
-                ];
-            },
-            titleCls (item) {
-                return [
-                    {
-                        [`${this.prefixCls}-node-selected`]: item.selected
-                    }
-                ];
-            },
-            expandCls (item) {
-                return [
-                    {
-                        [`${this.prefixCls}-child-tree-open`]: item.expand
-                    }
-                ];
-            },
-            setKey () {
-                for (let i = 0; i < this.data.length; i++) {
-                    this.data[i].key = `${this.key}.${i}`;
-                }
-            },
-            preHandle () {
-                for (let [i,item] of this.data.entries()) {
-                    if (!item.children || !item.children.length) {
-                        this.$set(`data[${i}].isLeaf`, true);
-                        this.$set(`data[${i}].childrenCheckedStatus`, 2);
-                        continue;
-                    }
-                    if (item.checked && !item.childrenCheckedStatus) {
-                        this.$set(`data[${i}].childrenCheckedStatus`, 2);
-                        this.$broadcast('parentChecked', true, `${this.key}.${i}`);
-                    } else {
-                        let status = this.getChildrenCheckedStatus(item.children);
-                        this.$set(`data[${i}].childrenCheckedStatus`, status);
-                        if (status !== 0) this.$set(`data[${i}].checked`, true);
+
+                    if (node[childrenKey]) {
+                        flatTree[node.nodeKey][childrenKey] = [];
+                        node[childrenKey].forEach(child => flattenChildren(child, node));
                     }
                 }
+                this.stateTree.forEach(rootNode => {
+                    flattenChildren(rootNode);
+                });
+                return flatTree;
             },
-            setExpand (disabled, index) {
-                if (!disabled) {
-                    this.$set(`data[${index}].expand`, !this.data[index].expand);
+            updateTreeUp(nodeKey){
+                const parentKey = this.flatState[nodeKey].parent;
+                if (typeof parentKey == 'undefined') return;
+
+                const node = this.flatState[nodeKey].node;
+                const parent = this.flatState[parentKey].node;
+                if (node.checked == parent.checked && node.indeterminate == parent.indeterminate) return; // no need to update upwards
+
+                if (node.checked == true) {
+                    this.$set(parent, 'checked', parent[this.childrenKey].every(node => node.checked));
+                    this.$set(parent, 'indeterminate', !parent.checked);
+                } else {
+                    this.$set(parent, 'checked', false);
+                    this.$set(parent, 'indeterminate', parent[this.childrenKey].some(node => node.checked || node.indeterminate));
                 }
+                this.updateTreeUp(parentKey);
             },
-            setSelect (disabled, index) {
-                if (!disabled) {
-                    const selected = !this.data[index].selected;
-                    if (this.multiple || !selected) {
-                        this.$set(`data[${index}].selected`, selected);
-                    } else {
-                        for (let i = 0; i < this.data.length; i++) {
-                            if (i == index) {
-                                this.$set(`data[${i}].selected`, true);
-                            } else {
-                                this.$set(`data[${i}].selected`, false);
-                            }
-                        }
+            rebuildTree () { // only called when `data` prop changes
+                const checkedNodes = this.getCheckedNodes();
+                checkedNodes.forEach(node => {
+                    this.updateTreeDown(node, {checked: true});
+                    // propagate upwards
+                    const parentKey = this.flatState[node.nodeKey].parent;
+                    if (!parentKey && parentKey !== 0) return;
+                    const parent = this.flatState[parentKey].node;
+                    const childHasCheckSetter = typeof node.checked != 'undefined' && node.checked;
+                    if (childHasCheckSetter && parent.checked != node.checked) {
+                        this.updateTreeUp(node.nodeKey); // update tree upwards
                     }
-                    this.$dispatch('nodeSelected', this, selected);
-                }
+                });
             },
-            setCheck (disabled, index) {
-                if (disabled) return;
-                const checked = !this.data[index].checked;
-                this.$set(`data[${index}].checked`, checked);
-                this.$set(`data[${index}].childrenCheckedStatus`, checked ? 2 : 0);
-                this.$dispatch('childChecked', this, this.key);
-                this.$broadcast('parentChecked', checked, `${this.key}.${index}`);
-            },
-            getNodes (data, opt) {
-                data = data || this.data;
-                let res = [];
-                for (let node of data) {
-                    let tmp = true;
-                    for (let [key, value] of Object.entries(opt)) {
-                        if (node[key] != value) {
-                            tmp = false;
-                            break;
-                        }
-                    }
-                    if (tmp) {
-                        res.push(node);
-                    }
-                    if (node.children && node.children.length) {
-                        res = res.concat(this.getNodes(node.children, opt));
-                    }
-                }
-                return res;
-            },
+
             getSelectedNodes () {
-                return this.getNodes(this.data, {selected: true});
+                /* public API */
+                return this.flatState.filter(obj => obj.node.selected).map(obj => obj.node);
             },
             getCheckedNodes () {
-                return this.getNodes(this.data, {checked: true, childrenCheckedStatus: 2});
+                /* public API */
+                return this.flatState.filter(obj => obj.node.checked).map(obj => obj.node);
             },
-            getChildrenCheckedStatus (children) {
-                let checkNum = 0, child_childrenAllChecked = true;
-                for (let child of children) {
-                    if (child.checked) {
-                        checkNum++;
-                    }
-                    if (child.childrenCheckedStatus !== 2) {
-                        child_childrenAllChecked = false;
-                    }
+            updateTreeDown(node, changes = {}) {
+                for (let key in changes) {
+                    this.$set(node, key, changes[key]);
                 }
-                // select all
-                if (checkNum == children.length) {
-                    return child_childrenAllChecked ? 2 : 1;
-                    // select some
-                } else if (checkNum > 0) {
-                    return 1;
-                } else {
-                    return 0;
-                }
-            }
-        },
-        ready(){
-            this.setKey();
-            this.preHandle();
-
-            this.$on('nodeSelected', (ori, selected) => {
-                if (this.key !== '0') return true;
-                if (!this.multiple && selected) {
-                    if (this !== ori) {
-                        for (let i = 0; i < this.data.length; i++) {
-                            this.$set(`data[${i}].selected`, false);
-                        }
-                    }
-                    this.$broadcast('cancelSelected', ori);
-                }
-                this.$nextTick(() => {
-                    this.$emit('on-select-change', this.getSelectedNodes());
-                });
-            });
-            this.$on('cancelSelected', ori => {
-                this.$broadcast('cancelSelected', ori);
-                if (this !== ori) {
-                    for (let i = 0; i < this.data.length; i++) {
-                        this.$set(`data[${i}].selected`, false);
-                    }
-                }
-            });
-            this.$on('parentChecked', (status, key) => {
-                if (this.key == key || this.key.startsWith(key + '.')) {
-                    for (let i = 0; i < this.data.length; i++) {
-                        this.$set(`data[${i}].checked`, status);
-                        this.$set(`data[${i}].childrenCheckedStatus`, status ? 2 : 0);
-                    }
-                    this.$broadcast('parentChecked', status, key);
-                }
-            });
-            this.$on('childChecked', (ori, key) => {
-                if (this.key === '0') {
-                    this.$nextTick(() => {
-                        this.$emit('on-check-change', this.getCheckedNodes());
+                if (node[this.childrenKey]) {
+                    node[this.childrenKey].forEach(child => {
+                        this.updateTreeDown(child, changes);
                     });
                 }
-                if (this === ori) return;
-                for (let [i,item] of this.data.entries()) {
-                    if (this.key + '.' + i == key) {
-                        let temp = this.getChildrenCheckedStatus(item.children);
-                        if (temp != item.childrenCheckedStatus) {
-                            this.$set(`data[${i}].checked`, !!temp);
-                            this.$set(`data[${i}].childrenCheckedStatus`, temp);
-                            if (this.key !== '0') this.$dispatch('childChecked', this, this.key);
-                        }
-                    }
+            },
+            handleSelect (nodeKey) {
+                const node = this.flatState[nodeKey].node;
+                if (!this.multiple){ // reset previously selected node
+                    const currentSelectedKey = this.flatState.findIndex(obj => obj.node.selected);
+                    if (currentSelectedKey >= 0 && currentSelectedKey !== nodeKey) this.$set(this.flatState[currentSelectedKey].node, 'selected', false);
                 }
-            });
+                this.$set(node, 'selected', !node.selected);
+
+                this.$emit('on-select-change', this.getSelectedNodes());
+            },
+            handleCheck({ checked, nodeKey }) {
+                const node = this.flatState[nodeKey].node;
+                this.$set(node, 'checked', checked);
+                this.$set(node, 'indeterminate', false);
+
+                this.updateTreeUp(nodeKey); // propagate up
+                this.updateTreeDown(node, {checked, indeterminate: false}); // reset `indeterminate` when going down
+
+                this.$emit('on-check-change', this.getCheckedNodes());
+            }
+        },
+        created(){
+            this.flatState = this.compileFlatState();
+            this.rebuildTree();
+        },
+        mounted () {
+            this.$on('on-check', this.handleCheck);
+            this.$on('on-selected', this.handleSelect);
+            this.$on('toggle-expand', node => this.$emit('on-toggle-expand', node));
         }
     };
 </script>

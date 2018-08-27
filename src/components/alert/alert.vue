@@ -1,18 +1,20 @@
 <template>
-    <div v-if="!closed" :class="wrapClasses" transition="fade">
-        <span :class="iconClasses" v-if="showIcon">
-            <slot name="icon">
-                <Icon :type="iconType"></Icon>
-            </slot>
-        </span>
-        <span :class="messageClasses"><slot></slot></span>
-        <span :class="descClasses" v-el:desc><slot name="desc"></slot></span>
-        <a :class="closeClasses" v-if="closable" @click="close">
-            <slot name="close">
-                <Icon type="ios-close-empty"></Icon>
-            </slot>
-        </a>
-    </div>
+    <transition name="fade">
+        <div v-if="!closed" :class="wrapClasses">
+            <span :class="iconClasses" v-if="showIcon">
+                <slot name="icon">
+                    <Icon :type="iconType"></Icon>
+                </slot>
+            </span>
+            <span :class="messageClasses"><slot></slot></span>
+            <span :class="descClasses"><slot name="desc"></slot></span>
+            <a :class="closeClasses" v-if="closable" @click="close">
+                <slot name="close">
+                    <Icon type="ios-close"></Icon>
+                </slot>
+            </a>
+        </div>
+    </transition>
 </template>
 <script>
     import Icon from '../icon';
@@ -21,6 +23,7 @@
     const prefixCls = 'ivu-alert';
 
     export default {
+        name: 'Alert',
         components: { Icon },
         props: {
             type: {
@@ -40,7 +43,7 @@
             banner: {
                 type: Boolean,
                 default: false
-            },
+            }
         },
         data () {
             return {
@@ -77,19 +80,20 @@
 
                 switch (this.type) {
                     case 'success':
-                        type = 'checkmark-circled';
+                        type = 'ios-checkmark-circle';
                         break;
                     case 'info':
-                        type = 'information-circled';
+                        type = 'ios-information-circle';
                         break;
                     case 'warning':
-                        type = 'android-alert';
+                        type = 'ios-alert';
                         break;
                     case 'error':
-                        type = 'close-circled';
+                        type = 'ios-close-circle';
                         break;
                 }
 
+                if (this.desc) type += '-outline';
                 return type;
             }
         },
@@ -99,8 +103,8 @@
                 this.$emit('on-close', e);
             }
         },
-        compiled () {
-            this.desc = this.$els.desc.innerHTML != '';
+        mounted () {
+            this.desc = this.$slots.desc !== undefined;
         }
     };
 </script>

@@ -7,47 +7,79 @@
                 type="checkbox"
                 :class="inputClasses"
                 :disabled="disabled"
-                :value="value"
+                :value="label"
                 v-model="model"
-                @change="change">
+                :name="name"
+                @change="change"
+                @focus="onFocus"
+                @blur="onBlur">
             <input
-                v-if="!group"
+                v-else
                 type="checkbox"
                 :class="inputClasses"
                 :disabled="disabled"
-                v-model="checked"
-                @change="change">
+                :checked="currentValue"
+                :name="name"
+                @change="change"
+                @focus="onFocus"
+                @blur="onBlur">
         </span>
-        <slot v-if="showSlot"><span v-el:slot>{{ value }}</span></slot>
+        <slot><span v-if="showSlot">{{ label }}</span></slot>
     </label>
 </template>
 <script>
+    import { findComponentUpward, oneOf } from '../../utils/assist';
+    import Emitter from '../../mixins/emitter';
+
     const prefixCls = 'ivu-checkbox';
 
     export default {
+        name: 'Checkbox',
+        mixins: [ Emitter ],
         props: {
             disabled: {
                 type: Boolean,
                 default: false
             },
             value: {
-                type: [String, Number, Boolean]
-            },
-            checked: {
-                type: Boolean,
+                type: [String, Number, Boolean],
                 default: false
+            },
+            trueValue: {
+                type: [String, Number, Boolean],
+                default: true
+            },
+            falseValue: {
+                type: [String, Number, Boolean],
+                default: false
+            },
+            label: {
+                type: [String, Number, Boolean]
             },
             indeterminate: {
                 type: Boolean,
                 default: false
+            },
+            size: {
+                validator (value) {
+                    return oneOf(value, ['small', 'large', 'default']);
+                },
+                default () {
+                    return !this.$IVIEW || this.$IVIEW.size === '' ? 'default' : this.$IVIEW.size;
+                }
+            },
+            name: {
+                type: String
             }
         },
         data () {
             return {
                 model: [],
-                selected: false,
+                currentValue: this.value,
                 group: false,
-                showSlot: true
+                showSlot: true,
+                parent: findComponentUpward(this, 'CheckboxGroup'),
+                focusInner: false
             };
         },
         computed: {
@@ -56,8 +88,9 @@
                     `${prefixCls}-wrapper`,
                     {
                         [`${prefixCls}-group-item`]: this.group,
-                        [`${prefixCls}-wrapper-checked`]: this.selected,
-                        [`${prefixCls}-wrapper-disabled`]: this.disabled
+                        [`${prefixCls}-wrapper-checked`]: this.currentValue,
+                        [`${prefixCls}-wrapper-disabled`]: this.disabled,
+                        [`${prefixCls}-${this.size}`]: !!this.size
                     }
                 ];
             },
@@ -65,26 +98,35 @@
                 return [
                     `${prefixCls}`,
                     {
-                        [`${prefixCls}-checked`]: this.selected,
+                        [`${prefixCls}-checked`]: this.currentValue,
                         [`${prefixCls}-disabled`]: this.disabled,
                         [`${prefixCls}-indeterminate`]: this.indeterminate
                     }
                 ];
             },
             innerClasses () {
-                return `${prefixCls}-inner`;
+                return [
+                    `${prefixCls}-inner`,
+                    {
+                        [`${prefixCls}-focus`]: this.focusInner
+                    }
+                ];
             },
             inputClasses () {
                 return `${prefixCls}-input`;
             }
         },
-        ready () {
-            if (this.$parent && this.$parent.$options.name === 'checkboxGroup') this.group = true;
-            if (!this.group) {
+        mounted () {
+            this.parent = findComponentUpward(this, 'CheckboxGroup');
+            if (this.parent) {
+                this.group = true;
+            }
+
+            if (this.group) {
+                this.parent.updateModel(true);
+            } else {
                 this.updateModel();
-                if (this.$els.slot && this.$els.slot.innerHTML === '') {
-                    this.showSlot = false;
-                }
+                this.showSlot = this.$slots.default !== undefined;
             }
         },
         methods: {
@@ -93,22 +135,36 @@
                     return false;
                 }
 
-                this.selected = event.target.checked;
+                const checked = event.target.checked;
+                this.currentValue = checked;
+
+                const value = checked ? this.trueValue : this.falseValue;
+                this.$emit('input', value);
 
                 if (this.group) {
-                    this.$parent.change(this.model);
+                    this.parent.change(this.model);
                 } else {
-                    this.$emit('on-change', this.checked);
-                    this.$dispatch('on-form-change', this.checked);
+                    this.$emit('on-change', value);
+                    this.dispatch('FormItem', 'on-form-change', value);
                 }
             },
             updateModel () {
-                this.selected = this.checked;
+                this.currentValue = this.value === this.trueValue;
+            },
+            onBlur () {
+                this.focusInner = false;
+            },
+            onFocus () {
+                this.focusInner = true;
             }
         },
         watch: {
-            checked () {
-                this.updateModel();
+            value (val) {
+                if (val === this.trueValue || val === this.falseValue) {
+                    this.updateModel();
+                } else {
+                    throw 'Value should be trueValue or falseValue.';
+                }
             }
         }
     };

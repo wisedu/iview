@@ -1,14 +1,23 @@
 <template>
     <div :class="classes">
-        <div :class="headClasses" v-if="showHead" v-el:head><slot name="title"></slot></div>
-        <div :class="extraClasses" v-if="showExtra" v-el:extra><slot name="extra"></slot></div>
-        <div :class="bodyClasses"><slot></slot></div>
+        <div :class="headClasses" v-if="showHead"><slot name="title">
+            <p v-if="title">
+                <Icon v-if="icon" :type="icon"></Icon>
+                <span>{{title}}</span>
+            </p>
+        </slot></div>
+        <div :class="extraClasses" v-if="showExtra"><slot name="extra"></slot></div>
+        <div :class="bodyClasses" :style="bodyStyles"><slot></slot></div>
     </div>
 </template>
 <script>
     const prefixCls = 'ivu-card';
+    const defaultPadding = 16;
+    import Icon from '../icon/icon.vue';
 
     export default {
+        name: 'Card',
+        components: { Icon },
         props: {
             bordered: {
                 type: Boolean,
@@ -21,6 +30,16 @@
             shadow: {
                 type: Boolean,
                 default: false
+            },
+            padding: {
+                type: Number,
+                default: defaultPadding
+            },
+            title: {
+                type: String,
+            },
+            icon: {
+                type: String,
             }
         },
         data () {
@@ -48,11 +67,20 @@
             },
             bodyClasses () {
                 return `${prefixCls}-body`;
+            },
+            bodyStyles () {
+                if (this.padding !== defaultPadding) {
+                    return {
+                        padding: `${this.padding}px`
+                    };
+                } else {
+                    return '';
+                }
             }
         },
-        compiled () {
-            this.showHead = this.$els.head.innerHTML != '';
-            this.showExtra = this.$els.extra.innerHTML != '';
+        mounted () {
+            this.showHead = this.title || this.$slots.title !== undefined;
+            this.showExtra = this.$slots.extra !== undefined;
         }
     };
 </script>

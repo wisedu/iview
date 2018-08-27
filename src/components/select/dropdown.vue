@@ -1,47 +1,64 @@
 <template>
-    <div class="ivu-select-dropdown" :style="styles"><slot></slot></div>
+    <div class="ivu-select-dropdown" :class="className" :style="styles"><slot></slot></div>
 </template>
 <script>
+    import Vue from 'vue';
+    const isServer = Vue.prototype.$isServer;
     import { getStyle } from '../../utils/assist';
-    import Popper from 'popper.js';
+    const Popper = isServer ? function() {} : require('popper.js/dist/umd/popper.js');  // eslint-disable-line
 
     export default {
+        name: 'Drop',
         props: {
             placement: {
                 type: String,
                 default: 'bottom-start'
+            },
+            className: {
+                type: String
             }
         },
         data () {
             return {
                 popper: null,
                 width: '',
+                popperStatus: false
             };
         },
         computed: {
             styles () {
                 let style = {};
-                if (this.width) style.width = `${this.width}px`;
+                if (this.width) style.minWidth = `${this.width}px`;
                 return style;
             }
         },
         methods: {
             update () {
+                if (isServer) return;
                 if (this.popper) {
                     this.$nextTick(() => {
                         this.popper.update();
+                        this.popperStatus = true;
                     });
                 } else {
                     this.$nextTick(() => {
-                        this.popper = new Popper(this.$parent.$els.reference, this.$el, {
-                            gpuAcceleration: false,
+                        this.popper = new Popper(this.$parent.$refs.reference, this.$el, {
                             placement: this.placement,
-                            boundariesPadding: 0,
-                            forceAbsolute: true,
-                            boundariesElement: 'body'
-                        });
-                        this.popper.onCreate(popper => {
-                            this.resetTransformOrigin(popper);
+                            modifiers: {
+                                computeStyle:{
+                                    gpuAcceleration: false
+                                },
+                                preventOverflow :{
+                                    boundariesElement: 'window'
+                                }
+                            },
+                            onCreate:()=>{
+                                this.resetTransformOrigin();
+                                this.$nextTick(this.popper.update());
+                            },
+                            onUpdate:()=>{
+                                this.resetTransformOrigin();
+                            }
                         });
                     });
                 }
@@ -52,21 +69,29 @@
             },
             destroy () {
                 if (this.popper) {
-                    this.resetTransformOrigin(this.popper);
                     setTimeout(() => {
-                        this.popper.destroy();
-                        this.popper = null;
+                        if (this.popper && !this.popperStatus) {
+                            this.popper.destroy();
+                            this.popper = null;
+                        }
+                        this.popperStatus = false;
                     }, 300);
                 }
             },
-            resetTransformOrigin(popper) {
-                let placementMap = {top: 'bottom', bottom: 'top'};
-                let placement = popper._popper.getAttribute('x-placement').split('-')[0];
-                let origin = placementMap[placement];
-                popper._popper.style.transformOrigin = `center ${ origin }`;
+            resetTransformOrigin() {
+                // 不判断，Select 会报错，不知道为什么
+                if (!this.popper) return;
+
+                let x_placement = this.popper.popper.getAttribute('x-placement');
+                let placementStart = x_placement.split('-')[0];
+                let placementEnd = x_placement.split('-')[1];
+                const leftOrRight = x_placement === 'left' || x_placement === 'right';
+                if(!leftOrRight){
+                    this.popper.popper.style.transformOrigin = placementStart==='bottom' || ( placementStart !== 'top' && placementEnd === 'start') ? 'center top' : 'center bottom';
+                }
             }
         },
-        compiled () {
+        created () {
             this.$on('on-update-popper', this.update);
             this.$on('on-destroy-popper', this.destroy);
         },

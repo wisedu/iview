@@ -8,26 +8,28 @@
                 <Icon :type="format(file)"></Icon> {{ file.name }}
             </span>
             <Icon
-                type="ios-close-empty"
+                type="ios-close"
                 :class="[prefixCls + '-list-remove']"
                 v-show="file.status === 'finished'"
-                @click="handleRemove(file)"></Icon>
-            <Progress
-                v-if="file.showProgress"
-                :stroke-width="2"
-                :percent="parsePercentage(file.percentage)"
-                :status="file.status === 'finished' && file.showProgress ? 'success' : 'normal'"
-                transition="fade"></Progress>
+                @click.native="handleRemove(file)"></Icon>
+            <transition name="fade">
+                <i-progress
+                    v-if="file.showProgress"
+                    :stroke-width="2"
+                    :percent="parsePercentage(file.percentage)"
+                    :status="file.status === 'finished' && file.showProgress ? 'success' : 'normal'"></i-progress>
+            </transition>
         </li>
     </ul>
 </template>
 <script>
     import Icon from '../icon/icon.vue';
-    import Progress from '../progress/progress.vue';
+    import iProgress from '../progress/progress.vue';
     const prefixCls = 'ivu-upload';
 
     export default {
-        components: { Icon, Progress },
+        name: 'UploadList',
+        components: { Icon, iProgress },
         props: {
             files: {
                 type: Array,
@@ -41,7 +43,6 @@
                 prefixCls: prefixCls
             };
         },
-        computed: {},
         methods: {
             fileCls (file) {
                 return [
@@ -62,10 +63,10 @@
             },
             format (file) {
                 const format = file.name.split('.').pop().toLocaleLowerCase() || '';
-                let type = 'document';
+                let type = 'ios-document-outline';
 
                 if (['gif','jpg','jpeg','png','bmp','webp'].indexOf(format) > -1) {
-                    type = 'image';
+                    type = 'ios-image';
                 }
                 if (['mp4','m3u8','rmvb','avi','swf','3gp','mkv','flv'].indexOf(format) > -1) {
                     type = 'ios-film';
@@ -74,10 +75,10 @@
                     type = 'ios-musical-notes';
                 }
                 if (['doc','txt','docx','pages','epub','pdf'].indexOf(format) > -1) {
-                    type = 'document-text';
+                    type = 'md-document';
                 }
                 if (['numbers','csv','xls','xlsx'].indexOf(format) > -1) {
-                    type = 'stats-bars';
+                    type = 'ios-stats';
                 }
                 if (['keynote','ppt','pptx'].indexOf(format) > -1) {
                     type = 'ios-videocam';

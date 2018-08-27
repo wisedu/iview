@@ -1,7 +1,9 @@
 /**
  * https://github.com/freeze-component/vue-popper
  * */
-import Popper from 'popper.js';
+import Vue from 'vue';
+const isServer = Vue.prototype.$isServer;
+const Popper = isServer ? function() {} : require('popper.js/dist/umd/popper.js');  // eslint-disable-line
 
 export default {
     props: {
@@ -18,21 +20,35 @@ export default {
         offset: {
             default: 0
         },
-        value: Boolean,
+        value: {
+            type: Boolean,
+            default: false
+        },
         transition: String,
         options: {
             type: Object,
             default () {
                 return {
-                    gpuAcceleration: false,
-                    boundariesElement: 'body'
+                    modifiers: {
+                        computeStyle:{
+                            gpuAcceleration: false,
+                        },
+                        preventOverflow :{
+                            boundariesElement: 'window'
+                        }
+                    }
                 };
             }
         },
-        visible: {
-            type: Boolean,
-            default: false
-        }
+        // visible: {
+        //     type: Boolean,
+        //     default: false
+        // }
+    },
+    data () {
+        return {
+            visible: this.value
+        };
     },
     watch: {
         value: {
@@ -45,8 +61,8 @@ export default {
         visible(val) {
             if (val) {
                 this.updatePopper();
+                this.$emit('on-popper-show');
             } else {
-                this.destroyPopper();
                 this.$emit('on-popper-hide');
             }
             this.$emit('input', val);
@@ -54,13 +70,14 @@ export default {
     },
     methods: {
         createPopper() {
+            if (isServer) return;
             if (!/^(top|bottom|left|right)(-start|-end)?$/g.test(this.placement)) {
                 return;
             }
 
             const options = this.options;
-            const popper = this.popper || this.$els.popper;
-            const reference = this.reference || this.$els.reference;
+            const popper = this.popper || this.$refs.popper;
+            const reference = this.reference || this.$refs.reference;
 
             if (!popper || !reference) return;
 
@@ -69,36 +86,36 @@ export default {
             }
 
             options.placement = this.placement;
-            options.offset = this.offset;
 
-            this.popperJS = new Popper(reference, popper, options);
-            this.popperJS.onCreate(popper => {
-                this.resetTransformOrigin(popper);
+            if (!options.modifiers.offset) {
+                options.modifiers.offset = {};
+            }
+            options.modifiers.offset.offset = this.offset;
+            options.onCreate =()=>{
                 this.$nextTick(this.updatePopper);
                 this.$emit('created', this);
-            });
+            };
+
+            this.popperJS = new Popper(reference, popper, options);
+
         },
         updatePopper() {
+            if (isServer) return;
             this.popperJS ? this.popperJS.update() : this.createPopper();
         },
         doDestroy() {
+            if (isServer) return;
             if (this.visible) return;
             this.popperJS.destroy();
             this.popperJS = null;
-        },
-        destroyPopper() {
-            if (this.popperJS) {
-                this.resetTransformOrigin(this.popperJS);
-            }
-        },
-        resetTransformOrigin(popper) {
-            let placementMap = {top: 'bottom', bottom: 'top', left: 'right', right: 'left'};
-            let placement = popper._popper.getAttribute('x-placement').split('-')[0];
-            let origin = placementMap[placement];
-            popper._popper.style.transformOrigin = ['top', 'bottom'].indexOf(placement) > -1 ? `center ${ origin }` : `${ origin } center`;
         }
     },
+    updated (){
+        this.$nextTick(()=>this.updatePopper());
+
+    },
     beforeDestroy() {
+        if (isServer) return;
         if (this.popperJS) {
             this.popperJS.destroy();
         }

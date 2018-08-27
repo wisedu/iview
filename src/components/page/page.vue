@@ -1,15 +1,17 @@
 <template>
-    <ul :class="simpleWrapClasses" :style="style" v-if="simple">
+    <ul :class="simpleWrapClasses" :style="styles" v-if="simple">
         <li
             :title="t('i.page.prev')"
             :class="prevClasses"
             @click="prev">
-            <a><i class="ivu-icon ivu-icon-ios-arrow-left"></i></a>
+            <a><i class="ivu-icon ivu-icon-ios-arrow-back"></i></a>
         </li>
-        <div :class="simplePagerClasses" :title="current + '/' + allPages">
+        <div :class="simplePagerClasses" :title="currentPage + '/' + allPages">
             <input
                 type="text"
-                :value="current"
+                :value="currentPage"
+                autocomplete="off"
+                spellcheck="false"
                 @keydown="keyDown"
                 @keyup="keyUp"
                 @change="keyUp">
@@ -20,10 +22,10 @@
             :title="t('i.page.next')"
             :class="nextClasses"
             @click="next">
-            <a><i class="ivu-icon ivu-icon-ios-arrow-right"></i></a>
+            <a><i class="ivu-icon ivu-icon-ios-arrow-forward"></i></a>
         </li>
     </ul>
-    <ul :class="wrapClasses" :style="style" v-else>
+    <ul :class="wrapClasses" :style="styles" v-else>
         <span :class="[prefixCls + '-total']" v-if="showTotal">
             <slot>{{ t('i.page.total') }} {{ total }} <template v-if="total <= 1">{{ t('i.page.item') }}</template><template v-else>{{ t('i.page.items') }}</template></slot>
         </span>
@@ -31,30 +33,34 @@
             :title="t('i.page.prev')"
             :class="prevClasses"
             @click="prev">
-            <a><i class="ivu-icon ivu-icon-ios-arrow-left"></i></a>
+            <a><template v-if="prevText !== ''">{{ prevText }}</template><i v-else class="ivu-icon ivu-icon-ios-arrow-back"></i></a>
         </li>
         <li title="1" :class="firstPageClasses" @click="changePage(1)"><a>1</a></li>
-        <li :title="t('i.page.prev5')" v-if="current - 3 > 1" :class="[prefixCls + '-item-jump-prev']" @click="fastPrev"><a><i class="ivu-icon ivu-icon-ios-arrow-left"></i></a></li>
-        <li :title="current - 2" v-if="current - 2 > 1" :class="[prefixCls + '-item']" @click="changePage(current - 2)"><a>{{ current - 2 }}</a></li>
-        <li :title="current - 1" v-if="current - 1 > 1" :class="[prefixCls + '-item']" @click="changePage(current - 1)"><a>{{ current - 1 }}</a></li>
-        <li :title="current" v-if="current != 1 && current != allPages" :class="[prefixCls + '-item',prefixCls + '-item-active']"><a>{{ current }}</a></li>
-        <li :title="current + 1" v-if="current + 1 < allPages" :class="[prefixCls + '-item']" @click="changePage(current + 1)"><a>{{ current + 1 }}</a></li>
-        <li :title="current + 2" v-if="current + 2 < allPages" :class="[prefixCls + '-item']" @click="changePage(current + 2)"><a>{{ current + 2 }}</a></li>
-        <li :title="t('i.page.next5')" v-if="current + 3 < allPages" :class="[prefixCls + '-item-jump-next']" @click="fastNext"><a><i class="ivu-icon ivu-icon-ios-arrow-right"></i></a></li>
+        <li :title="t('i.page.prev5')" v-if="currentPage > 5" :class="[prefixCls + '-item-jump-prev']" @click="fastPrev"><a><i class="ivu-icon ivu-icon-ios-arrow-back"></i></a></li>
+        <li :title="currentPage - 3" v-if="currentPage === 5" :class="[prefixCls + '-item']" @click="changePage(currentPage - 3)"><a>{{ currentPage - 3 }}</a></li>
+        <li :title="currentPage - 2" v-if="currentPage - 2 > 1" :class="[prefixCls + '-item']" @click="changePage(currentPage - 2)"><a>{{ currentPage - 2 }}</a></li>
+        <li :title="currentPage - 1" v-if="currentPage - 1 > 1" :class="[prefixCls + '-item']" @click="changePage(currentPage - 1)"><a>{{ currentPage - 1 }}</a></li>
+        <li :title="currentPage" v-if="currentPage != 1 && currentPage != allPages" :class="[prefixCls + '-item',prefixCls + '-item-active']"><a>{{ currentPage }}</a></li>
+        <li :title="currentPage + 1" v-if="currentPage + 1 < allPages" :class="[prefixCls + '-item']" @click="changePage(currentPage + 1)"><a>{{ currentPage + 1 }}</a></li>
+        <li :title="currentPage + 2" v-if="currentPage + 2 < allPages" :class="[prefixCls + '-item']" @click="changePage(currentPage + 2)"><a>{{ currentPage + 2 }}</a></li>
+        <li :title="currentPage + 3" v-if="allPages - currentPage === 4" :class="[prefixCls + '-item']" @click="changePage(currentPage + 3)"><a>{{ currentPage + 3 }}</a></li>
+        <li :title="t('i.page.next5')" v-if="allPages - currentPage >= 5" :class="[prefixCls + '-item-jump-next']" @click="fastNext"><a><i class="ivu-icon ivu-icon-ios-arrow-forward"></i></a></li>
         <li :title="allPages" v-if="allPages > 1" :class="lastPageClasses" @click="changePage(allPages)"><a>{{ allPages }}</a></li>
         <li
             :title="t('i.page.next')"
             :class="nextClasses"
             @click="next">
-            <a><i class="ivu-icon ivu-icon-ios-arrow-right"></i></a>
+            <a><template v-if="nextText !== ''">{{ nextText }}</template><i v-else class="ivu-icon ivu-icon-ios-arrow-forward"></i></a>
         </li>
         <Options
             :show-sizer="showSizer"
-            :page-size="pageSize"
+            :page-size="currentPageSize"
             :page-size-opts="pageSizeOpts"
+            :placement="placement"
+            :transfer="transfer"
             :show-elevator="showElevator"
-            :_current.once="current"
-            :current.sync="current"
+            :_current.once="currentPage"
+            :current="currentPage"
             :all-pages="allPages"
             :is-small="isSmall"
             @on-size="onSize"
@@ -70,6 +76,7 @@
     const prefixCls = 'ivu-page';
 
     export default {
+        name: 'Page',
         mixins: [ Locale ],
         components: { Options },
         props: {
@@ -89,6 +96,18 @@
                 type: Array,
                 default () {
                     return [10, 20, 30, 40];
+                }
+            },
+            placement: {
+                validator (value) {
+                    return oneOf(value, ['top', 'bottom']);
+                },
+                default: 'bottom'
+            },
+            transfer: {
+                type: Boolean,
+                default () {
+                    return !this.$IVIEW || this.$IVIEW.transfer === '' ? false : this.$IVIEW.transfer;
                 }
             },
             size: {
@@ -112,24 +131,48 @@
                 type: Boolean,
                 default: false
             },
-            class: {
+            className: {
                 type: String
             },
-            style: {
+            styles: {
                 type: Object
+            },
+            prevText: {
+                type: String,
+                default: ''
+            },
+            nextText: {
+                type: String,
+                default: ''
             }
         },
         data () {
             return {
-                prefixCls: prefixCls
+                prefixCls: prefixCls,
+                currentPage: this.current,
+                currentPageSize: this.pageSize
             };
+        },
+        watch: {
+            total (val) {
+                let maxPage = Math.ceil(val / this.currentPageSize);
+                if (maxPage < this.currentPage && maxPage > 0) {
+                    this.currentPage = maxPage;
+                }
+            },
+            current (val) {
+                this.currentPage = val;
+            },
+            pageSize (val) {
+                this.currentPageSize = val;
+            }
         },
         computed: {
             isSmall () {
                 return !!this.size;
             },
             allPages () {
-                const allPage = Math.ceil(this.total / this.pageSize);
+                const allPage = Math.ceil(this.total / this.currentPageSize);
                 return (allPage === 0) ? 1 : allPage;
             },
             simpleWrapClasses () {
@@ -137,7 +180,7 @@
                     `${prefixCls}`,
                     `${prefixCls}-simple`,
                     {
-                        [`${this.class}`]: !!this.class
+                        [`${this.className}`]: !!this.className
                     }
                 ];
             },
@@ -148,7 +191,7 @@
                 return [
                     `${prefixCls}`,
                     {
-                        [`${this.class}`]: !!this.class,
+                        [`${this.className}`]: !!this.className,
                         'mini': !!this.size
                     }
                 ];
@@ -157,7 +200,8 @@
                 return [
                     `${prefixCls}-prev`,
                     {
-                        [`${prefixCls}-disabled`]: this.current === 1
+                        [`${prefixCls}-disabled`]: this.currentPage === 1,
+                        [`${prefixCls}-custom-text`]: this.prevText !== ''
                     }
                 ];
             },
@@ -165,7 +209,8 @@
                 return [
                     `${prefixCls}-next`,
                     {
-                        [`${prefixCls}-disabled`]: this.current === this.allPages
+                        [`${prefixCls}-disabled`]: this.currentPage === this.allPages,
+                        [`${prefixCls}-custom-text`]: this.nextText !== ''
                     }
                 ];
             },
@@ -173,7 +218,7 @@
                 return [
                     `${prefixCls}-item`,
                     {
-                        [`${prefixCls}-item-active`]: this.current === 1
+                        [`${prefixCls}-item-active`]: this.currentPage === 1
                     }
                 ];
             },
@@ -181,34 +226,35 @@
                 return [
                     `${prefixCls}-item`,
                     {
-                        [`${prefixCls}-item-active`]: this.current === this.allPages
+                        [`${prefixCls}-item-active`]: this.currentPage === this.allPages
                     }
                 ];
             }
         },
         methods: {
             changePage (page) {
-                if (this.current != page) {
-                    this.current = page;
+                if (this.currentPage != page) {
+                    this.currentPage = page;
+                    this.$emit('update:current', page);
                     this.$emit('on-change', page);
                 }
             },
             prev () {
-                const current = this.current;
+                const current = this.currentPage;
                 if (current <= 1) {
                     return false;
                 }
                 this.changePage(current - 1);
             },
             next () {
-                const current = this.current;
+                const current = this.currentPage;
                 if (current >= this.allPages) {
                     return false;
                 }
                 this.changePage(current + 1);
             },
             fastPrev () {
-                const page = this.current - 5;
+                const page = this.currentPage - 5;
                 if (page > 0) {
                     this.changePage(page);
                 } else {
@@ -216,7 +262,7 @@
                 }
             },
             fastNext () {
-                const page = this.current + 5;
+                const page = this.currentPage + 5;
                 if (page > this.allPages) {
                     this.changePage(this.allPages);
                 } else {
@@ -224,16 +270,16 @@
                 }
             },
             onSize (pageSize) {
-                this.pageSize = pageSize;
-                this.changePage(1);
+                this.currentPageSize = pageSize;
                 this.$emit('on-page-size-change', pageSize);
+                this.changePage(1);
             },
             onPage (page) {
                 this.changePage(page);
             },
             keyDown (e) {
                 const key = e.keyCode;
-                const condition = (key >= 48 && key <= 57) || key == 8 || key == 37 || key == 39;
+                const condition = (key >= 48 && key <= 57) || (key >= 96 && key <= 105) || key === 8 || key === 37 || key === 39;
 
                 if (!condition) {
                     e.preventDefault();
@@ -247,12 +293,12 @@
                     this.prev();
                 } else if (key === 40) {
                     this.next();
-                } else if (key == 13) {
+                } else if (key === 13) {
                     let page = 1;
 
                     if (val > this.allPages) {
                         page = this.allPages;
-                    } else if (val <= 0) {
+                    } else if (val <= 0 || !val) {
                         page = 1;
                     } else {
                         page = val;

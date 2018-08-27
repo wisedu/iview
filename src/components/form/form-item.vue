@@ -1,16 +1,17 @@
 <template>
     <div :class="classes">
-        <label :class="[prefixCls + '-label']" :style="labelStyles" v-if="label"><slot name="label">{{ label }}</slot></label>
+        <label :class="[prefixCls + '-label']" :for="labelFor" :style="labelStyles" v-if="label || $slots.label"><slot name="label">{{ label }}</slot></label>
         <div :class="[prefixCls + '-content']" :style="contentStyles">
             <slot></slot>
-            <div transition="fade" :class="[prefixCls + '-error-tip']" v-if="validateState === 'error' && showMessage && form.showMessage">{{ validateMessage }}</div>
+            <transition name="fade">
+                <div :class="[prefixCls + '-error-tip']" v-if="validateState === 'error' && showMessage && form.showMessage">{{ validateMessage }}</div>
+            </transition>
         </div>
     </div>
 </template>
 <script>
-    // https://github.com/ElemeFE/element/blob/dev/packages/form/src/form-item.vue
-
     import AsyncValidator from 'async-validator';
+    import Emitter from '../../mixins/emitter';
 
     const prefixCls = 'ivu-form-item';
 
@@ -38,6 +39,8 @@
     }
 
     export default {
+        name: 'FormItem',
+        mixins: [ Emitter ],
         props: {
             label: {
                 type: String,
@@ -65,6 +68,9 @@
             showMessage: {
                 type: Boolean,
                 default: true
+            },
+            labelFor: {
+                type: String
             }
         },
         data () {
@@ -80,12 +86,16 @@
         watch: {
             error (val) {
                 this.validateMessage = val;
-                this.validateState = 'error';
+                this.validateState = val === '' ? '' : 'error';
             },
             validateStatus (val) {
                 this.validateState = val;
+            },
+            rules (){
+                this.setRules();
             }
         },
+        inject: ['form'],
         computed: {
             classes () {
                 return [
@@ -97,13 +107,13 @@
                     }
                 ];
             },
-            form() {
-                let parent = this.$parent;
-                while (parent.$options.name !== 'iForm') {
-                    parent = parent.$parent;
-                }
-                return parent;
-            },
+            // form() {
+            //    let parent = this.$parent;
+            //    while (parent.$options.name !== 'iForm') {
+            //        parent = parent.$parent;
+            //    }
+            //    return parent;
+            // },
             fieldValue: {
                 cache: false,
                 get() {
@@ -120,22 +130,36 @@
             },
             labelStyles () {
                 let style = {};
-                const labelWidth = this.labelWidth || this.form.labelWidth;
-                if (labelWidth) {
+                const labelWidth = this.labelWidth === 0 || this.labelWidth ? this.labelWidth : this.form.labelWidth;
+
+                if (labelWidth || labelWidth === 0) {
                     style.width = `${labelWidth}px`;
                 }
                 return style;
             },
             contentStyles () {
                 let style = {};
-                const labelWidth = this.labelWidth || this.form.labelWidth;
-                if (labelWidth) {
+                const labelWidth = this.labelWidth === 0 || this.labelWidth ? this.labelWidth : this.form.labelWidth;
+
+                if (labelWidth || labelWidth === 0) {
                     style.marginLeft = `${labelWidth}px`;
                 }
                 return style;
             }
         },
         methods: {
+            setRules() {
+                let rules = this.getRules();
+                if (rules.length) {
+                    rules.every((rule) => {
+                        this.isRequired = rule.required;
+                    });
+                    this.$off('on-form-blur', this.onFieldBlur);
+                    this.$off('on-form-change', this.onFieldChange);
+                    this.$on('on-form-blur', this.onFieldBlur);
+                    this.$on('on-form-change', this.onFieldChange);
+                }
+            },
             getRules () {
                 let formRules = this.form.rules;
                 const selfRules = this.rules;
@@ -172,6 +196,7 @@
 
                     callback(this.validateMessage);
                 });
+                this.validateDisabled = false;
             },
             resetField () {
                 this.validateState = '';
@@ -186,10 +211,17 @@
 
                 let prop = getPropByPath(model, path);
 
-                if (Array.isArray(value) && value.length > 0) {
+//                if (Array.isArray(value) && value.length > 0) {
+//                    this.validateDisabled = true;
+//                    prop.o[prop.k] = [];
+//                } else if (value !== this.initialValue) {
+//                    this.validateDisabled = true;
+//                    prop.o[prop.k] = this.initialValue;
+//                }
+                if (Array.isArray(value)) {
                     this.validateDisabled = true;
-                    prop.o[prop.k] = [];
-                } else if (value !== this.initialValue) {
+                    prop.o[prop.k] = [].concat(this.initialValue);
+                } else {
                     this.validateDisabled = true;
                     prop.o[prop.k] = this.initialValue;
                 }
@@ -206,30 +238,19 @@
                 this.validate('change');
             }
         },
-        ready () {
+        mounted () {
             if (this.prop) {
-                this.$dispatch('on-form-item-add', this);
+                this.dispatch('iForm', 'on-form-item-add', this);
 
                 Object.defineProperty(this, 'initialValue', {
                     value: this.fieldValue
                 });
 
-                let rules = this.getRules();
-
-                if (rules.length) {
-                    rules.every(rule => {
-                        if (rule.required) {
-                            this.isRequired = true;
-                            return false;
-                        }
-                    });
-                    this.$on('on-form-blur', this.onFieldBlur);
-                    this.$on('on-form-change', this.onFieldChange);
-                }
+                this.setRules();
             }
         },
         beforeDestroy () {
-            this.$dispatch('on-form-item-remove', this);
+            this.dispatch('iForm', 'on-form-item-remove', this);
         }
     };
 </script>

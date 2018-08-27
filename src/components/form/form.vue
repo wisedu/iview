@@ -1,5 +1,5 @@
 <template>
-    <form :class="classes"><slot></slot></form>
+    <form :class="classes" :autocomplete="autocomplete"><slot></slot></form>
 </template>
 <script>
     // https://github.com/ElemeFE/element/blob/dev/packages/form/src/form.vue
@@ -32,7 +32,16 @@
             showMessage: {
                 type: Boolean,
                 default: true
+            },
+            autocomplete: {
+                validator (value) {
+                    return oneOf(value, ['on', 'off']);
+                },
+                default: 'off'
             }
+        },
+        provide() {
+            return { form : this };
         },
         data () {
             return {
@@ -57,16 +66,22 @@
                 });
             },
             validate(callback) {
-                let valid = true;
-                let count = 0;
-                this.fields.forEach(field => {
-                    field.validate('', errors => {
-                        if (errors) {
-                            valid = false;
-                        }
-                        if (typeof callback === 'function' && ++count === this.fields.length) {
-                            callback(valid);
-                        }
+                return new Promise(resolve => {
+                    let valid = true;
+                    let count = 0;
+                    this.fields.forEach(field => {
+                        field.validate('', errors => {
+                            if (errors) {
+                                valid = false;
+                            }
+                            if (++count === this.fields.length) {
+                                // all finish
+                                resolve(valid);
+                                if (typeof callback === 'function') {
+                                    callback(valid);
+                                }
+                            }
+                        });
                     });
                 });
             },
@@ -82,15 +97,15 @@
                 this.validate();
             }
         },
-        events: {
-            'on-form-item-add' (field) {
+        created () {
+            this.$on('on-form-item-add', (field) => {
                 if (field) this.fields.push(field);
                 return false;
-            },
-            'on-form-item-remove' (field) {
+            });
+            this.$on('on-form-item-remove', (field) => {
                 if (field.prop) this.fields.splice(this.fields.indexOf(field), 1);
                 return false;
-            }
+            });
         }
     };
 </script>

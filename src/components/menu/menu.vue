@@ -2,11 +2,14 @@
     <ul :class="classes" :style="styles"><slot></slot></ul>
 </template>
 <script>
-    import { oneOf } from '../../utils/assist';
+    import { oneOf, findComponentsDownward, findComponentsUpward } from '../../utils/assist';
+    import Emitter from '../../mixins/emitter';
 
     const prefixCls = 'ivu-menu';
 
     export default {
+        name: 'Menu',
+        mixins: [ Emitter ],
         props: {
             mode: {
                 validator (value) {
@@ -20,10 +23,10 @@
                 },
                 default: 'light'
             },
-            activeKey: {
+            activeName: {
                 type: [String, Number]
             },
-            openKeys: {
+            openNames: {
                 type: Array,
                 default () {
                     return [];
@@ -37,6 +40,12 @@
                 type: String,
                 default: '240px'
             }
+        },
+        data () {
+            return {
+                currentActiveName: this.activeName,
+                openedNames: []
+            };
         },
         computed: {
             classes () {
@@ -60,74 +69,84 @@
             }
         },
         methods: {
-            updateActiveKey () {
-                this.$children.forEach((item, index) => {
-                    if (!this.activeKey && index === 0) {
-                        this.activeKey = -1;
-                    }
-
-                    if (item.$options.name === 'Submenu') {
-                        item.active = false;
-                        item.$children.forEach(subitem => {
-                            if (subitem.$options.name === 'MenuGroup') {
-                                subitem.$children.forEach(groupItem => {
-                                    if (groupItem.key === this.activeKey) {
-                                        groupItem.active = true;
-                                        groupItem.$parent.$parent.active = true;
-                                    } else {
-                                        groupItem.active = false;
-                                    }
-                                });
-                            } else if (subitem.$options.name === 'MenuItem') {
-                                if (subitem.key === this.activeKey) {
-                                    subitem.active = true;
-                                    subitem.$parent.active = true;
-                                } else {
-                                    subitem.active = false;
-                                }
+            updateActiveName () {
+                if (this.currentActiveName === undefined) {
+                    this.currentActiveName = -1;
+                }
+                this.broadcast('Submenu', 'on-update-active-name', false);
+                this.broadcast('MenuItem', 'on-update-active-name', this.currentActiveName);
+            },
+            updateOpenKeys (name) {
+                let names = [...this.openedNames];
+                const index = names.indexOf(name);
+                if (this.accordion) findComponentsDownward(this, 'Submenu').forEach(item => {
+                    item.opened = false;
+                });
+                if (index >= 0) {
+                    let currentSubmenu = null;
+                    findComponentsDownward(this, 'Submenu').forEach(item => {
+                        if (item.name === name) {
+                            currentSubmenu = item;
+                            item.opened = false;
+                        }
+                    });
+                    findComponentsUpward(currentSubmenu, 'Submenu').forEach(item => {
+                        item.opened = true;
+                    });
+                    findComponentsDownward(currentSubmenu, 'Submenu').forEach(item => {
+                        item.opened = false;
+                    });
+                } else {
+                    if (this.accordion) {
+                        let currentSubmenu = null;
+                        findComponentsDownward(this, 'Submenu').forEach(item => {
+                            if (item.name === name) {
+                                currentSubmenu = item;
+                                item.opened = true;
                             }
                         });
-                    } else if (item.$options.name === 'MenuGroup') {
-                        item.$children.forEach(groupItem => {
-                            groupItem.active = groupItem.key === this.activeKey;
+                        findComponentsUpward(currentSubmenu, 'Submenu').forEach(item => {
+                            item.opened = true;
                         });
-                    } else if (item.$options.name === 'MenuItem') {
-                        item.active = item.key === this.activeKey;
+                    } else {
+                        findComponentsDownward(this, 'Submenu').forEach(item => {
+                            if (item.name === name) item.opened = true;
+                        });
                     }
-                });
-            },
-            updateOpenKeys (key) {
-                const index = this.openKeys.indexOf(key);
-                if (index > -1) {
-                    this.openKeys.splice(index, 1);
-                } else {
-                    this.openKeys.push(key);
                 }
+                let openedNames = findComponentsDownward(this, 'Submenu').filter(item => item.opened).map(item => item.name);
+                this.openedNames = [...openedNames];
+                this.$emit('on-open-change', openedNames);
             },
             updateOpened () {
-                this.$children.forEach(item => {
-                    if (item.$options.name === 'Submenu') {
-                        if (this.openKeys.indexOf(item.key) > -1) item.opened = true;
-                    }
-                });
+                const items = findComponentsDownward(this, 'Submenu');
+
+                if (items.length) {
+                    items.forEach(item => {
+                        if (this.openedNames.indexOf(item.name) > -1) item.opened = true;
+                        else item.opened = false;
+                    });
+                }
             }
         },
-        compiled () {
-            this.updateActiveKey();
+        mounted () {
+            this.updateActiveName();
+            this.openedNames = [...this.openNames];
             this.updateOpened();
-        },
-        events: {
-            'on-menu-item-select' (key) {
-                this.activeKey = key;
-                this.$emit('on-select', key);
-            }
+            this.$on('on-menu-item-select', (name) => {
+                this.currentActiveName = name;
+                this.$emit('on-select', name);
+            });
         },
         watch: {
-            openKeys () {
-                this.$emit('on-open-change', this.openKeys);
+            openNames (names) {
+                this.openedNames = names;
             },
-            activeKey () {
-                this.updateActiveKey();
+            activeName (val) {
+                this.currentActiveName = val;
+            },
+            currentActiveName () {
+                this.updateActiveName();
             }
         }
     };

@@ -1,31 +1,38 @@
 <template>
     <li :class="classes" @mouseenter="handleMouseenter" @mouseleave="handleMouseleave">
-        <div :class="[prefixCls + '-submenu-title']" v-el:reference @click="handleClick">
+        <div :class="[prefixCls + '-submenu-title']" ref="reference" @click.stop="handleClick" :style="titleStyle">
             <slot name="title"></slot>
             <Icon type="ios-arrow-down" :class="[prefixCls + '-submenu-title-icon']"></Icon>
         </div>
-        <ul :class="[prefixCls]" v-if="mode === 'vertical'" v-show="opened"><slot></slot></ul>
-        <Drop
-            v-else
-            v-show="opened"
-            placement="bottom"
-            transition="slide-up"
-            v-ref:drop
-            :style="dropStyle"><slot></slot></Drop>
+        <collapse-transition v-if="mode === 'vertical'">
+            <ul :class="[prefixCls]" v-show="opened"><slot></slot></ul>
+        </collapse-transition>
+        <transition name="slide-up" v-else>
+            <Drop
+                v-show="opened"
+                placement="bottom"
+                ref="drop"
+                :style="dropStyle"><ul :class="[prefixCls + '-drop-list']"><slot></slot></ul>
+            </Drop>
+        </transition>
     </li>
 </template>
 <script>
     import Drop from '../select/dropdown.vue';
     import Icon from '../icon/icon.vue';
-    import { getStyle } from '../../utils/assist';
+    import CollapseTransition from '../base/collapse-transition';
+    import { getStyle, findComponentUpward, findComponentsDownward } from '../../utils/assist';
+    import Emitter from '../../mixins/emitter';
+    import mixin from './mixin';
 
     const prefixCls = 'ivu-menu';
 
     export default {
         name: 'Submenu',
-        components: { Icon, Drop },
+        mixins: [ Emitter, mixin ],
+        components: { Icon, Drop, CollapseTransition },
         props: {
-            key: {
+            name: {
                 type: [String, Number],
                 required: true
             },
@@ -47,23 +54,27 @@
                 return [
                     `${prefixCls}-submenu`,
                     {
-                        [`${prefixCls}-item-active`]: this.active,
+                        [`${prefixCls}-item-active`]: this.active && !this.hasParentSubmenu,
                         [`${prefixCls}-opened`]: this.opened,
-                        [`${prefixCls}-submenu-disabled`]: this.disabled
+                        [`${prefixCls}-submenu-disabled`]: this.disabled,
+                        [`${prefixCls}-submenu-has-parent-submenu`]: this.hasParentSubmenu,
+                        [`${prefixCls}-child-item-active`]: this.active
                     }
                 ];
             },
-            mode () {
-                return this.$parent.mode;
-            },
             accordion () {
-                return this.$parent.accordion;
+                return this.menu.accordion;
             },
             dropStyle () {
                 let style = {};
 
                 if (this.dropWidth) style.minWidth = `${this.dropWidth}px`;
                 return style;
+            },
+            titleStyle () {
+                return this.hasParentSubmenu && this.mode !== 'horizontal' ? {
+                    paddingLeft: 43 + (this.parentSubmenuNum - 1) * 24 + 'px'
+                } : {};
             }
         },
         methods: {
@@ -73,7 +84,7 @@
 
                 clearTimeout(this.timeout);
                 this.timeout = setTimeout(() => {
-                    this.$parent.updateOpenKeys(this.key);
+                    this.menu.updateOpenKeys(this.name);
                     this.opened = true;
                 }, 250);
             },
@@ -83,7 +94,7 @@
 
                 clearTimeout(this.timeout);
                 this.timeout = setTimeout(() => {
-                    this.$parent.updateOpenKeys(this.key);
+                    this.menu.updateOpenKeys(this.name);
                     this.opened = false;
                 }, 150);
             },
@@ -97,7 +108,7 @@
                     });
                 }
                 this.opened = !opened;
-                this.$parent.updateOpenKeys(this.key);
+                this.menu.updateOpenKeys(this.name);
             }
         },
         watch: {
@@ -117,11 +128,19 @@
                 }
             }
         },
-        events: {
-            'on-menu-item-select' () {
+        mounted () {
+            this.$on('on-menu-item-select', (name) => {
                 if (this.mode === 'horizontal') this.opened = false;
+                this.dispatch('Menu', 'on-menu-item-select', name);
                 return true;
-            }
+            });
+            this.$on('on-update-active-name', (status) => {
+                if (findComponentUpward(this, 'Submenu')) this.dispatch('Submenu', 'on-update-active-name', status);
+                if (findComponentsDownward(this, 'Submenu')) findComponentsDownward(this, 'Submenu').forEach(item => {
+                    item.active = false;
+                });
+                this.active = status;
+            });
         }
     };
 </script>
