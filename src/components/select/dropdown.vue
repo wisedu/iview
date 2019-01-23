@@ -34,7 +34,11 @@
         computed: {
             styles () {
                 let style = {};
-                if (this.width) style.minWidth = `${this.width}px`;
+//                下拉框的宽度与输入框宽度保持一致  --YBT-3144  --ghlong
+                if (this.width){
+                    style.minWidth = `${this.width}px`;
+                    style.width = `${this.width}px`;
+                }
 
                 if (this.transfer) style['z-index'] = 1060 + this.tIndex;
 

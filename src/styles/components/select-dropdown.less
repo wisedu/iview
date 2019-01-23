@@ -22,6 +22,17 @@
     &.@{transfer-no-max-height} {
         max-height: none;
     }
+
+    //处理下拉内容超长自动折行显示 --YBT-3144 --ghlong
+    & > .ivu-select-dropdown-list{
+        position: relative;
+
+        & .ivu-select-item{
+            position: relative;
+            display: block;
+            white-space: normal;
+        }
+    }
 }
 .@{modal-prefix-cls} {
     .@{select-dropdown-prefix-cls} {
