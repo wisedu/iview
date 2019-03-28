@@ -68,20 +68,29 @@
                 return new Promise(resolve => {
                     let valid = true;
                     let count = 0;
-                    this.fields.forEach(field => {
-                        field.validate('', errors => {
-                            if (errors) {
-                                valid = false;
-                            }
-                            if (++count === this.fields.length) {
-                                // all finish
-                                resolve(valid);
-                                if (typeof callback === 'function') {
-                                    callback(valid);
+//                    处理当需校验字段为空时
+                    let fieldsCount = this.fields.length;
+                    if(fieldsCount > 0){
+                        this.fields.forEach(field => {
+                            field.validate('', errors => {
+                                if (errors) {
+                                    valid = false;
                                 }
-                            }
+                                if (++count === fieldsCount) {
+                                    // all finish
+                                    resolve(valid);
+                                    if (typeof callback === 'function') {
+                                        callback(valid);
+                                    }
+                                }
+                            });
                         });
-                    });
+                    }else{
+                        resolve(valid);
+                        if (typeof callback === 'function') {
+                            callback(valid);
+                        }
+                    }
                 });
             },
             validateField(prop, cb) {
