@@ -17,7 +17,7 @@
                     v-show="filterable && query === ''"
                     @click="handleFocus">{{ displayRender }}</div>
                 <Icon type="ios-close-circle" :class="[prefixCls + '-arrow']" v-show="showCloseIcon" @click.native.stop="clearSelect"></Icon>
-                <Icon type="ios-arrow-down" :class="[prefixCls + '-arrow']"></Icon>
+                <Icon type="ios-arrow-down" :class="[prefixCls + '-arrow']" @click.native.stop="toggleOpenByArrowDown"></Icon>
             </slot>
         </div>
         <transition name="transition-drop">
@@ -251,6 +251,14 @@
                 if (this.disabled) return false;
                 if (this.visible) {
                     if (!this.filterable) this.handleClose();
+                } else {
+                    this.onFocus();
+                }
+            },
+            toggleOpenByArrowDown(){
+                if (this.disabled) return false;
+                if (this.visible) {
+                    this.handleClose();
                 } else {
                     this.onFocus();
                 }
