@@ -144,7 +144,8 @@
                 let style = {};
                 if (x > -1) {
                     style = {
-                        transform: `translateX(${p}) translateZ(0px)`
+                        '-ms-transform': `translateX(${p}) translateZ(0px)`,
+                        transform: `translateX(${p}) translateZ(0px)`,
                     };
                 }
                 return style;
