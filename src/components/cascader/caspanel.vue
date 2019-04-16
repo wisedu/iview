@@ -1,6 +1,6 @@
 <template>
     <span>
-        <ul v-if="data && data.length" :class="[prefixCls + '-menu']">
+        <ul v-if="data && data.length" :class="[prefixCls + '-menu']" :ref="refname">
             <Casitem
                 v-for="item in data"
                 :key="getKey()"
@@ -16,6 +16,8 @@
     import Casitem from './casitem.vue';
     import Emitter from '../../mixins/emitter';
     import { findComponentUpward, findComponentDownward } from '../../utils/assist';
+    import Utils from '../../utils/utils';
+
 
     let key = 1;
 
@@ -39,7 +41,8 @@
             return {
                 tmpItem: {},
                 result: [],
-                sublist: []
+                sublist: [],
+                refname:this.prefixCls + '-ref'
             };
         },
         watch: {
@@ -48,9 +51,15 @@
             }
         },
         methods: {
+            adjustIeDom(){
+                if (Utils.checkIsIe9Ie10()) {
+                    this.$refs[this.refname].style.width = 'auto';
+                }
+            },
             handleClickItem (item) {
                 if (this.trigger !== 'click' && item.children && item.children.length) return;  // #1922
                 this.handleTriggerItem(item, false, true);
+                this.adjustIeDom();
             },
             handleHoverItem (item) {
                 if (this.trigger !== 'hover' || !item.children || !item.children.length) return;  // #1922
