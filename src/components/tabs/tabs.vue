@@ -35,6 +35,7 @@
     import { oneOf, MutationObserver } from '../../utils/assist';
     import Emitter from '../../mixins/emitter';
     import elementResizeDetectorMaker from 'element-resize-detector';
+    import Utils from '../../utils/utils';
 
     const prefixCls = 'ivu-tabs';
     const transitionTime = 300; // from CSS
@@ -144,9 +145,10 @@
                 let style = {};
                 if (x > -1) {
                     style = {
-                        '-ms-transform': `translateX(${p}) translateZ(0px)`,
                         transform: `translateX(${p}) translateZ(0px)`,
                     };
+
+                    this.setPanelVisibleInIe();
                 }
                 return style;
             },
@@ -156,7 +158,7 @@
                     width: `${this.barWidth}px`
                 };
                 if (this.type === 'line') style.visibility = 'visible';
-                if (this.animated) {
+                if (this.animated && !Utils.checkIsIe9()) {
                     style.transform = `translate3d(${this.barOffset}px, 0px, 0px)`;
                 } else {
                     style.left = `${this.barOffset}px`;
@@ -166,6 +168,26 @@
             }
         },
         methods: {
+            setPanelVisibleInIe(){
+                if(Utils.checkIsIe9()){
+                    let x = this.getTabIndex(this.activeKey);
+                    let panes = this.$refs.panes;
+                    let paneChildren = [];
+                    if(panes){
+                        paneChildren = panes.children;
+                    }
+                    let count = paneChildren.length;
+                    if(count > 0){
+                        for(let i=0; i<count; i++){
+                            if(i !== x){
+                                paneChildren[i].style.display = 'none';
+                            }else{
+                                paneChildren[i].style.display = 'block';
+                            }
+                        }
+                    }
+                }
+            },
             getTabs () {
                 return this.$children.filter(item => item.$options.name === 'TabPane');
             },
@@ -178,7 +200,7 @@
                         if (paneLabel) {
                             label = function() {
                                 return paneLabel;
-                            }; 
+                            };
                         }
                     }
                     this.navList.push({
@@ -453,6 +475,8 @@
 
             this.handleTabKeyboardSelect(true);
             this.updateVisibility(this.getTabIndex(this.activeKey));
+
+            this.setPanelVisibleInIe();
         },
         beforeDestroy() {
             this.observer.removeListener(this.$refs.navWrap, this.handleResize);
