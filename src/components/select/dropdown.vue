@@ -8,6 +8,7 @@
     const Popper = isServer ? function() {} : require('popper.js/dist/umd/popper.js');  // eslint-disable-line
 
     import { transferIndex, transferIncrease } from '../../utils/transfer-queue';
+    import Utils from '../../utils/utils';
 
     export default {
         name: 'Drop',
@@ -28,7 +29,10 @@
                 popper: null,
                 width: '',
                 popperStatus: false,
-                tIndex: this.handleGetIndex()
+                tIndex: this.handleGetIndex(),
+                ieTop:'',
+                ieLeft:'',
+                ieDisplay:''
             };
         },
         computed: {
@@ -41,6 +45,10 @@
                 }
 
                 if (this.transfer) style['z-index'] = 1060 + this.tIndex;
+
+                if (this.ieTop) style['top'] = this.ieTop;
+                if (this.ieLeft) style['left'] = this.ieLeft;
+                if (this.ieDisplay) style['display'] = this.ieDisplay;
 
                 return style;
             }
@@ -55,24 +63,31 @@
                     });
                 } else {
                     this.$nextTick(() => {
-                        this.popper = new Popper(this.$parent.$refs.reference, this.$el, {
-                            placement: this.placement,
-                            modifiers: {
-                                computeStyle:{
-                                    gpuAcceleration: false
+                        if (Utils.checkIsIe9()) {
+                            var positionResult = Utils.getAbsolute(document,this.$parent.$refs.reference);
+                            this.ieTop = positionResult.top + 'px';
+                            this.ieLeft = positionResult.left + 'px';
+                            this.ieDisplay = 'block';
+                        } else {
+                            this.popper = new Popper(this.$parent.$refs.reference, this.$el, {
+                                placement: this.placement,
+                                modifiers: {
+                                    computeStyle:{
+                                        gpuAcceleration: false
+                                    },
+                                    preventOverflow :{
+                                        boundariesElement: 'window'
+                                    }
                                 },
-                                preventOverflow :{
-                                    boundariesElement: 'window'
+                                onCreate:()=>{
+                                    this.resetTransformOrigin();
+                                    this.$nextTick(this.popper.update());
+                                },
+                                onUpdate:()=>{
+                                    this.resetTransformOrigin();
                                 }
-                            },
-                            onCreate:()=>{
-                                this.resetTransformOrigin();
-                                this.$nextTick(this.popper.update());
-                            },
-                            onUpdate:()=>{
-                                this.resetTransformOrigin();
-                            }
-                        });
+                            });
+                        }
                     });
                 }
                 // set a height for parent is Modal and Select's width is 100%
