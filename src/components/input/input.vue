@@ -70,6 +70,7 @@
     import { oneOf, findComponentUpward } from '../../utils/assist';
     import calcTextareaHeight from '../../utils/calcTextareaHeight';
     import Emitter from '../../mixins/emitter';
+    import Utils from '../../utils/utils';
 
     const prefixCls = 'ivu-input';
 
@@ -239,6 +240,14 @@
                 this.$emit('on-focus', event);
             },
             handleBlur (event) {
+                // 针对ie下不能触发textarea组件的input事件的修正
+                if (this.type == 'textarea' && (Utils.checkIsIe11() || Utils.checkIsIe10())) {
+                    let value = event.target.value;
+                    if (this.number && value !== '') value = Number.isNaN(Number(value)) ? value : Number(value);
+                    this.$emit('input', value);
+                    this.setCurrentValue(value);
+                    this.$emit('on-change', event);
+                }
                 this.$emit('on-blur', event);
                 if (!findComponentUpward(this, ['DatePicker', 'TimePicker', 'Cascader', 'Search'])) {
                     this.dispatch('FormItem', 'on-form-blur', this.currentValue);
@@ -252,7 +261,16 @@
                 this.$emit('on-change', event);
             },
             handleChange (event) {
-                this.$emit('on-input-change', event);
+                // 针对ie下不能触发input组件的input事件的修正
+                if (Utils.checkIsIe11() || Utils.checkIsIe10()) {
+                    let value = event.target.value;
+                    if (this.number && value !== '') value = Number.isNaN(Number(value)) ? value : Number(value);
+                    this.$emit('input', value);
+                    this.setCurrentValue(value);
+                    this.$emit('on-change', event);
+                }else{
+                    this.$emit('on-input-change', event);
+                }
             },
             setCurrentValue (value) {
                 if (value === this.currentValue) return;

@@ -52,10 +52,12 @@
         },
         methods: {
             adjustIeDom(){
-                if (Utils.checkIsIe9Ie10()) {
-                    // debugger;
-                    this.$refs[this.refname].parentElement.parentElement.parentElement.style.width = 'auto';
-                    this.$refs[this.refname].style.width = 'auto';
+                if (Utils.checkIsIe9() || Utils.checkIsIe10()) {
+                    var self = this;
+                    self.$refs[this.refname].parentElement.parentElement.parentElement.style.width = '500px';
+                    setTimeout(function(){
+                        self.$refs[self.refname].parentElement.parentElement.parentElement.style.width = 'auto';
+                    },80);
                 }
             },
             handleClickItem (item) {
