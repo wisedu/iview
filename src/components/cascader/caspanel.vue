@@ -53,6 +53,8 @@
         methods: {
             adjustIeDom(){
                 if (Utils.checkIsIe9Ie10()) {
+                    // debugger;
+                    this.$refs[this.refname].parentElement.parentElement.parentElement.style.width = 'auto';
                     this.$refs[this.refname].style.width = 'auto';
                 }
             },
