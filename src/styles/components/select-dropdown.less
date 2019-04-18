@@ -3,7 +3,7 @@
 
 .@{select-dropdown-prefix-cls} {
     width: inherit;
-    max-height: 200px;
+    max-height: 300px;
     overflow: auto;
     margin: 5px 0;
     padding: 5px 0;
@@ -31,6 +31,40 @@
             position: relative;
             display: block;
             white-space: normal;
+        }
+    }
+
+    &.ivu-select-dropdown-show-search,
+    &.ivu-select-dropdown-show-page{
+        height: 300px;
+        overflow: hidden;
+
+        & > .ivu-select-dropdown-list{
+            overflow: auto;
+        }
+    }
+
+    &.ivu-select-dropdown-show-search{
+        & > .ivu-select-dropdown-list{
+            height: calc(~"100% - 32px");
+        }
+    }
+
+    &.ivu-select-dropdown-show-page{
+        & > .ivu-select-dropdown-list{
+            height: calc(~"100% - 28px");
+        }
+
+        & > .ivu-page{
+            text-align: right;
+        }
+    }
+
+    &.ivu-select-dropdown-show-search{
+        &.ivu-select-dropdown-show-page{
+            & > .ivu-select-dropdown-list{
+                height: calc(~"100% - 28px - 32px");
+            }
         }
     }
 }

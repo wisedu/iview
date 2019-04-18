@@ -57,6 +57,7 @@
                 :transfer="transfer"
                 v-transfer-dom
             >
+                <Input v-if="showSearch" v-model="searchKey" @keydown.stop="dropInputKeyDown" placeholder="请输入关键字" />
                 <ul v-show="showNotFoundLabel" :class="[prefixCls + '-not-found']"><li>{{ localeNotFoundText }}</li></ul>
                 <ul :class="prefixCls + '-dropdown-list'">
                     <functional-options
@@ -67,6 +68,7 @@
                     ></functional-options>
                 </ul>
                 <ul v-show="loading" :class="[prefixCls + '-loading']">{{ localeLoadingText }}</ul>
+                <Page v-if="showPage" @keydown.stop="dropInputKeyDown" @on-change="pageChange" :total="pageTotal" :current="pageCurrent" size="small" :page-size="pageSize" simple />
             </Drop>
         </transition>
     </div>
@@ -231,7 +233,21 @@
             },
             elementId: {
                 type: String
-            }
+            },
+            showPage: {
+                type: Boolean,
+                default: false
+            },
+            pageTotal: Number,
+            pageSize: {
+                type: Number,
+                default: 50
+            },
+            showSearch: {
+                type: Boolean,
+                default: false
+            },
+            pageCurrent: Number
         },
         mounted(){
             this.$on('on-select-selected', this.onOptionClick);
@@ -265,6 +281,7 @@
                 hasExpectedValue: false,
                 preventRemoteCall: false,
                 filterQueryChange: false,  // #4273
+                searchKey: ''
             };
         },
         computed: {
@@ -286,6 +303,8 @@
                     [prefixCls + '-dropdown-transfer']: this.transfer,
                     [prefixCls + '-multiple']: this.multiple && this.transfer,
                     ['ivu-auto-complete']: this.autoComplete,
+                    [prefixCls + '-dropdown-show-page']: this.showPage,
+                    [prefixCls + '-dropdown-show-search']: this.showSearch,
                 };
             },
             selectionCls () {
@@ -404,7 +423,7 @@
             },
             remote(){
                 return typeof this.remoteMethod === 'function';
-            }
+            },
         },
         methods: {
             setQuery(query){ // PUBLIC API
@@ -495,7 +514,9 @@
             onClickOutside(event){
                 if (this.visible) {
                     if (event.type === 'mousedown') {
-                        event.preventDefault();
+                        if(!this.showSearch && !this.showPage){
+                            event.preventDefault();
+                        }
                         return;
                     }
 
@@ -631,8 +652,8 @@
                 }
                 this.broadcast('Drop', 'on-update-popper');
                 setTimeout(() => {
-                  this.filterQueryChange = false;
-                },300)
+                    this.filterQueryChange = false;
+                },300);
             },
             onQueryChange(query) {
                 if (query.length > 0 && query !== this.query) this.visible = true;
@@ -653,6 +674,11 @@
                 if (this.getInitialValue().length > 0 && this.selectOptions.length === 0) {
                     this.hasExpectedValue = true;
                 }
+            },
+            pageChange(){
+                this.$emit('page-change', arguments[0]);
+            },
+            dropInputKeyDown(){
             },
         },
         watch: {
@@ -761,6 +787,9 @@
                     this.broadcast('Drop', 'on-update-popper');
                 }
             },
+            searchKey(key){
+                this.$emit('search-key-change', key);
+            }
         }
     };
 </script>
