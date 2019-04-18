@@ -57,7 +57,7 @@
                 :transfer="transfer"
                 v-transfer-dom
             >
-                <Input v-if="showSearch" v-model="searchKey" @keydown.stop="dropInputKeyDown" placeholder="请输入关键字" />
+                <Input v-if="isShowSearch" v-model="searchKey" @keydown.stop="dropInputKeyDown" placeholder="请输入关键字" />
                 <ul v-show="showNotFoundLabel" :class="[prefixCls + '-not-found']"><li>{{ localeNotFoundText }}</li></ul>
                 <ul :class="prefixCls + '-dropdown-list'">
                     <functional-options
@@ -68,7 +68,7 @@
                     ></functional-options>
                 </ul>
                 <ul v-show="loading" :class="[prefixCls + '-loading']">{{ localeLoadingText }}</ul>
-                <Page v-if="showPage" @keydown.stop="dropInputKeyDown" @on-change="pageChange" :total="pageTotal" :current="pageCurrent" size="small" :page-size="pageSize" simple />
+                <Page v-if="isShowPage" @keydown.stop="dropInputKeyDown" @on-change="pageChange" :total="pageTotal" :current="pageCurrent" size="small" :page-size="pageSize" simple />
             </Drop>
         </transition>
     </div>
@@ -342,6 +342,26 @@
             showNotFoundLabel () {
                 const {loading, remote, selectOptions} = this;
                 return selectOptions && selectOptions.length === 0 && (!remote || (remote && !loading));
+            },
+            isShowSearch(){
+                const {loading, remote, selectOptions} = this;
+                let isNotFound = selectOptions && selectOptions.length === 0 && (!remote || (remote && !loading));
+                if(!this.showSearch){
+                    isNotFound = false;
+                }else{
+                    isNotFound = !isNotFound;
+                }
+                return isNotFound;
+            },
+            isShowPage(){
+                const {loading, remote, selectOptions} = this;
+                let isNotFound = selectOptions && selectOptions.length === 0 && (!remote || (remote && !loading));
+                if(!this.showPage){
+                    isNotFound = false;
+                }else{
+                    isNotFound = !isNotFound;
+                }
+                return isNotFound;
             },
             publicValue(){
                 if (this.labelInValue){
