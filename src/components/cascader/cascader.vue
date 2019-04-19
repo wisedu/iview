@@ -43,9 +43,11 @@
                                 :class="[selectPrefixCls + '-item', {
                                     [selectPrefixCls + '-item-disabled']: item.disabled
                                 }]"
-                                v-for="(item, index) in querySelections"
-                                @click="handleSelectItem(index)" v-html="item.display"></li>
+                                v-for="(item, index) in localQuerySelections"
+                                @click="handleSelectItem(item)" v-html="item.display"></li>
                         </ul>
+
+                        <Page v-if="page.isShow" @on-change="pageChange" :total="page.total" :current="page.index" :page-size="page.size" size="small" simple />
                     </div>
                     <ul v-show="filterable && query !== '' && !querySelections.length" :class="[prefixCls + '-not-found-tip']"><li>{{ localeNotFoundText }}</li></ul>
                 </div>
@@ -154,7 +156,15 @@
                 currentValue: this.value,
                 query: '',
                 validDataStr: '',
-                isLoadedChildren: false    // #950
+                isLoadedChildren: false,    // #950
+                page: {
+                    isShow: true,
+                    total: 0,
+                    index: 1,
+                    size: 50
+                },
+                querySelections: [],
+                localQuerySelections: []
             };
         },
         computed: {
@@ -201,7 +211,54 @@
                     return this.notFoundText;
                 }
             },
-            querySelections () {
+//            querySelections () {
+//                let selections = [];
+//                function getSelections (arr, label, value) {
+//                    for (let i = 0; i < arr.length; i++) {
+//                        let item = arr[i];
+//                        item.__label = label ? label + ' / ' + item.label : item.label;
+//                        item.__value = value ? value + ',' + item.value : item.value;
+//
+//                        if (item.children && item.children.length) {
+//                            getSelections(item.children, item.__label, item.__value);
+//                            delete item.__label;
+//                            delete item.__value;
+//                        } else {
+//                            selections.push({
+//                                label: item.__label,
+//                                value: item.__value,
+//                                display: item.__label,
+//                                item: item,
+//                                disabled: !!item.disabled
+//                            });
+//                        }
+//                    }
+//                }
+//                getSelections(this.data);
+//                selections = selections.filter(item => {
+//                    return item.label ? item.label.indexOf(this.query) > -1 : false;
+//                }).map(item => {
+//                    item.display = item.display.replace(new RegExp(this.query, 'g'), `<span>${this.query}</span>`);
+//                    return item;
+//                });
+//
+//                let count = selections.length;
+//                this.$set(this.page, 'total', count);
+//                if(count > this.page.size){
+//                    this.$set(this.page, 'isShow', true);
+//                }else{
+//                    this.$set(this.page, 'isShow', false);
+//                }
+//                this.setLocalQuerySelections();
+//                return selections;
+//            },
+        },
+        methods: {
+            pageChange(index){
+                this.$set(this.page, 'index', index);
+                this.setLocalQuerySelections();
+            },
+            setQuerySelections(){
                 let selections = [];
                 function getSelections (arr, label, value) {
                     for (let i = 0; i < arr.length; i++) {
@@ -231,10 +288,32 @@
                     item.display = item.display.replace(new RegExp(this.query, 'g'), `<span>${this.query}</span>`);
                     return item;
                 });
-                return selections;
-            }
-        },
-        methods: {
+
+                let count = selections.length;
+                this.$set(this.page, 'total', count);
+                if(count > this.page.size){
+                    this.$set(this.page, 'isShow', true);
+                }else{
+                    this.$set(this.page, 'isShow', false);
+                }
+
+                this.$set(this, 'querySelections', selections);
+                this.$set(this.page, 'index', 1);
+
+                this.setLocalQuerySelections();
+            },
+            setLocalQuerySelections(){
+                let selections = this.querySelections;
+                let pageIndex = this.page.index;
+                let pageSize = this.page.size;
+                let startIndex = (pageIndex - 1) * pageSize - 1;
+                let endIndex = startIndex + pageSize;
+                if(startIndex < 0){
+                    startIndex = 0;
+                }
+                let list = selections.slice(startIndex, endIndex);
+                this.$set(this, 'localQuerySelections', list);
+            },
             clearSelect () {
                 if (this.disabled) return false;
                 const oldVal = JSON.stringify(this.currentValue);
@@ -293,9 +372,10 @@
             },
             handleInput (event) {
                 this.query = event.target.value;
+                this.setQuerySelections();
             },
-            handleSelectItem (index) {
-                const item = this.querySelections[index];
+            handleSelectItem (item) {
+//                const item = this.querySelections[index];
 
                 if (item.item.disabled) return false;
                 this.query = '';

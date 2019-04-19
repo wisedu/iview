@@ -1,15 +1,21 @@
 <template>
-    <span>
-        <ul v-if="data && data.length" :class="[prefixCls + '-menu']" :ref="refname">
-            <Casitem
-                v-for="item in data"
-                :key="getKey()"
-                :prefix-cls="prefixCls"
-                :data="item"
-                :tmp-item="tmpItem"
-                @click.native.stop="handleClickItem(item)"
-                @mouseenter.native.stop="handleHoverItem(item)"></Casitem>
-        </ul><Caspanel v-if="sublist && sublist.length" :prefix-cls="prefixCls" :data="sublist" :disabled="disabled" :trigger="trigger" :change-on-select="changeOnSelect"></Caspanel>
+    <span :class="[prefixCls + '-menu-col']">
+        <div :class="[prefixCls + '-menu-container']">
+            <ul v-if="localList && localList.length" :class="[prefixCls + '-menu']" :ref="refname">
+                <Casitem
+                    v-for="item in localList"
+                    :key="getKey()"
+                    :prefix-cls="prefixCls"
+                    :data="item"
+                    :tmp-item="tmpItem"
+                    @click.native.stop="handleClickItem(item)"
+                    @mouseenter.native.stop="handleHoverItem(item)"></Casitem>
+            </ul>
+
+            <Page v-if="page.isShow" @on-change="pageChange" :total="page.total" :current="page.index" :page-size="page.size" size="small" simple />
+        </div>
+
+        <Caspanel v-if="sublist && sublist.length" :prefix-cls="prefixCls" :data="sublist" :disabled="disabled" :trigger="trigger" :change-on-select="changeOnSelect"></Caspanel>
     </span>
 </template>
 <script>
@@ -39,18 +45,58 @@
         },
         data () {
             return {
+                localList: [],
                 tmpItem: {},
                 result: [],
                 sublist: [],
-                refname:this.prefixCls + '-ref'
+                refname:this.prefixCls + '-ref',
+                page: {
+                    isShow: true,
+                    total: 0,
+                    index: 1,
+                    size: 20
+                }
             };
         },
         watch: {
             data () {
-                this.sublist = [];
+                this.initLocalList();
+//                this.sublist = [];
+            },
+            localList(){
+//                this.sublist = [];
+                this.$set(this, 'sublist', []);
             }
         },
         methods: {
+            initLocalList(){
+                this.$set(this.page, 'index', 1);
+                this.$set(this.page, 'total', this.data.length);
+                this.setLocalList();
+            },
+            setLocalList(){
+                let count = this.data.length;
+                let pageIndex = this.page.index;
+                let pageSize = this.page.size;
+                let startIndex = (pageIndex - 1) * pageSize - 1;
+                let endIndex = startIndex + pageSize;
+                if(startIndex < 0){
+                    startIndex = 0;
+                }
+                let localList = this.data.slice(startIndex, endIndex);
+                this.$set(this, 'localList', localList);
+
+                let isShowPage = false;
+                if(count > pageSize){
+                    isShowPage = true;
+                }
+                this.$set(this.page, 'isShow', isShowPage);
+
+            },
+            pageChange(index){
+                this.$set(this.page, 'index', index);
+                this.setLocalList();
+            },
             adjustIeDom(){
                 if (Utils.checkIsIe9() || Utils.checkIsIe10()) {
                     var self = this;
@@ -95,7 +141,8 @@
                     this.emitUpdate([backItem]);
                 }
                 if (item.children && item.children.length){
-                    this.sublist = item.children;
+                    this.$set(this, 'sublist', item.children);
+//                    this.sublist = item.children;
                     this.dispatch('Cascader', 'on-result-change', {
                         lastValue: false,
                         changeOnSelect: this.changeOnSelect,
@@ -110,7 +157,8 @@
                         }
                     }
                 } else {
-                    this.sublist = [];
+                    this.$set(this, 'sublist', []);
+//                    this.sublist = [];
                     this.dispatch('Cascader', 'on-result-change', {
                         lastValue: true,
                         changeOnSelect: this.changeOnSelect,
@@ -142,6 +190,8 @@
             }
         },
         mounted () {
+            this.initLocalList();
+
             this.$on('on-find-selected', (params) => {
                 const val = params.value;
                 let value = [...val];

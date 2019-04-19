@@ -12,6 +12,17 @@
     //position: relative;
     line-height: normal;
 
+    & .ivu-select-dropdown{
+        & > div{
+            &:after{
+                content: "";
+                display: table;
+                clear: both;
+                position: absolute;
+            }
+        }
+    }
+
     &-rel{
         display: inline-block;
         width: 100%;
@@ -85,6 +96,10 @@
             max-height: 190px;
             box-sizing: border-box;
             overflow: auto;
+
+            & + .ivu-page{
+                text-align: right;
+            }
         }
     }
 
@@ -101,15 +116,48 @@
         width: inherit;
     }
 
+    &-menu-col{
+        float: left;
+        position: relative;
+        &:after{
+            content: "";
+            display: table;
+            clear: both;
+            position: absolute;
+        }
+    }
+
+    &-menu-container{
+        position: relative;
+        display: inline-block;
+        float: left;
+        border-right: 1px solid @border-color-split;
+
+        & > .ivu-page{
+            text-align: right;
+
+            & .ivu-page-simple-pager{
+                margin-right: 0;
+                margin-left: 0;
+            }
+            & span{
+                padding: 0;
+            }
+            & input{
+                margin: 0;
+            }
+        }
+    }
+
     &-menu{
         display: inline-block;
-        min-width: 100px;
+        min-width: 130px;
         height: 180px;
         margin: 0;
         padding: 5px 0 !important;
         vertical-align: top;
         list-style: none;
-        border-right: 1px solid @border-color-split;
+        //border-right: 1px solid @border-color-split;
         overflow: auto;
 
         &:first-child {
