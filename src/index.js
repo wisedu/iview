@@ -44,6 +44,7 @@ import Sider from './components/sider';
 import Slider from './components/slider';
 import Spin from './components/spin';
 import Steps from './components/steps';
+import Flows from './components/flows';
 import Switch from './components/switch';
 import Table from './components/table';
 import Tabs from './components/tabs';
@@ -124,6 +125,7 @@ const components = {
     Spin,
     Step: Steps.Step,
     Steps,
+    Flows,
     Table,
     Tabs: Tabs,
     TabPane: Tabs.Pane,
