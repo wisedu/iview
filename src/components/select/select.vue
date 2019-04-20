@@ -779,6 +779,10 @@
                 }
             },
             dropVisible(open){
+                if(open){
+                    this.$set(this, 'searchKey', '');
+                }
+
                 this.broadcast('Drop', open ? 'on-update-popper' : 'on-destroy-popper');
             },
             selectOptions(){

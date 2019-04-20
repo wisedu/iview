@@ -36,7 +36,7 @@
 
     &.ivu-select-dropdown-show-search,
     &.ivu-select-dropdown-show-page{
-        height: 300px;
+        max-height: 300px;
         overflow: hidden;
 
         & > .ivu-select-dropdown-list{
@@ -46,13 +46,13 @@
 
     &.ivu-select-dropdown-show-search{
         & > .ivu-select-dropdown-list{
-            height: calc(~"100% - 32px");
+            max-height: 300px - 32px - 4px;
         }
     }
 
     &.ivu-select-dropdown-show-page{
         & > .ivu-select-dropdown-list{
-            height: calc(~"100% - 28px");
+            max-height: 300px - 28px - 4px;
         }
 
         & > .ivu-page{
@@ -63,7 +63,7 @@
     &.ivu-select-dropdown-show-search{
         &.ivu-select-dropdown-show-page{
             & > .ivu-select-dropdown-list{
-                height: calc(~"100% - 28px - 32px");
+                max-height: 300px - 28px - 32px - 4px;
             }
         }
     }
