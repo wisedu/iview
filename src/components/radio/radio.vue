@@ -1,5 +1,5 @@
 <template>
-    <label :class="wrapClasses">
+    <label :class="wrapClasses" v-if="!isVertical">
         <span :class="radioClasses">
             <span :class="innerClasses"></span>
             <input
@@ -8,11 +8,31 @@
                 :disabled="disabled"
                 :checked="currentValue"
                 :name="groupName"
+                :value="value"
                 @change="change"
                 @focus="onFocus"
                 @blur="onBlur">
         </span><slot>{{ label }}</slot>
     </label>
+    <div v-else>
+        <label :class="wrapClasses">
+            <span :class="radioClasses">
+                <span :class="innerClasses"></span>
+                <input
+                    type="radio"
+                    :class="inputClasses"
+                    :disabled="disabled"
+                    :checked="currentValue"
+                    :name="groupName"
+                    :value="value"
+                    @change="change"
+                    @focus="onFocus"
+                    @blur="onBlur">
+            </span>
+            <slot>{{ label }}</slot>
+        </label>
+        <slot name="template" v-if="currentValue"></slot>
+    </div>
 </template>
 <script>
     import { findComponentUpward, oneOf } from '../../utils/assist';
@@ -66,6 +86,10 @@
             };
         },
         computed: {
+            isVertical () {
+                if(!this.$parent) return false;
+                return this.$parent.vertical
+            },
             wrapClasses () {
                 return [
                     `${prefixCls}-wrapper`,
@@ -134,7 +158,7 @@
                 if (this.group) {
                     if (this.label !== undefined) {
                         this.parent.change({
-                            value: this.label,
+                            value: typeof this.value  === 'boolean'?this.label:this.value,
                             checked: this.value
                         });
                     }

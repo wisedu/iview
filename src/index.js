@@ -59,6 +59,8 @@ import Upload from './components/upload';
 import {Row, Col} from './components/grid';
 import {Select, Option, OptionGroup} from './components/select';
 import locale from './locale/index';
+import Navbar from './components/navbar';
+import TreeSelect from './components/tree-select';
 
 const components = {
     Affix,
@@ -137,7 +139,10 @@ const components = {
     Tooltip,
     Transfer,
     Tree,
-    Upload
+    Upload,
+    Navbar,
+    NavbarItem: Navbar.Item,
+    TreeSelect
 };
 
 const iview = {

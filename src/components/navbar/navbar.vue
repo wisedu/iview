@@ -1,99 +1,48 @@
 <template>
     <div :class="classes">
         <div :class="[prefixCls + '-bar']">
-            <div :class="[prefixCls + '-nav-right']" v-if="showSlot"><slot name="extra"></slot></div>
-            <div
-                :class="[prefixCls + '-nav-container']"
-                tabindex="0"
-                ref="navContainer"
-                @keydown="handleTabKeyNavigation"
-                @keydown.space.prevent="handleTabKeyboardSelect(false)"
-            >
+            <div :class="[prefixCls + '-nav-container']">
                 <div ref="navWrap" :class="[prefixCls + '-nav-wrap', scrollable ? prefixCls + '-nav-scrollable' : '']">
-                    <span :class="[prefixCls + '-nav-prev', scrollable ? '' : prefixCls + '-nav-scroll-disabled']" @click="scrollPrev"><Icon type="ios-arrow-back"></Icon></span>
-                    <span :class="[prefixCls + '-nav-next', scrollable ? '' : prefixCls + '-nav-scroll-disabled']" @click="scrollNext"><Icon type="ios-arrow-forward"></Icon></span>
+                    <span :class="[prefixCls + '-nav-prev', scrollable ? '' : prefixCls + '-nav-scroll-disabled']" @click="scrollPrev"><Icon type="chevron-left"></Icon></span>
+                    <span :class="[prefixCls + '-nav-next', scrollable ? '' : prefixCls + '-nav-scroll-disabled']" @click="scrollNext"><Icon type="chevron-right"></Icon></span>
                     <div ref="navScroll" :class="[prefixCls + '-nav-scroll']">
                         <div ref="nav" :class="[prefixCls + '-nav']" class="nav-text"  :style="navStyle">
-                            <div :class="barClasses" :style="barStyle"></div>
                             <div :class="tabCls(item)" v-for="(item, index) in navList" @click="handleChange(index)">
-                                <Icon v-if="item.icon !== ''" :type="item.icon"></Icon>
-                                <Render v-if="item.labelType === 'function'" :render="item.label"></Render>
-                                <template v-else>{{ item.label }}</template>
-                                <Icon v-if="showClose(item)" type="ios-close" @click.native.stop="handleRemove(index)"></Icon>
+                                <template>{{ item.label }}</template>
+                                <i class="ivu-icon ivu-icon-ios-checkmark"></i>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div :class="contentClasses" :style="contentStyle" ref="panes"><slot></slot></div>
+        <div :class="contentClasses" :style="contentStyle"><slot></slot></div>
     </div>
 </template>
 <script>
-    import Icon from '../icon/icon.vue';
-    import Render from '../base/render';
     import { oneOf, MutationObserver } from '../../utils/assist';
     import Emitter from '../../mixins/emitter';
     import elementResizeDetectorMaker from 'element-resize-detector';
-    import Utils from '../../utils/utils';
 
-    const prefixCls = 'ivu-tabs';
-    const transitionTime = 300; // from CSS
-
-    const getNextTab = (list, activeKey, direction, countDisabledAlso) => {
-        const currentIndex = list.findIndex(tab => tab.name === activeKey);
-        const nextIndex = (currentIndex + direction + list.length) % list.length;
-        const nextTab = list[nextIndex];
-        if (nextTab.disabled) return getNextTab(list, nextTab.name, direction, countDisabledAlso);
-        else return nextTab;
-    };
-
-    const focusFirst = (element, root) => {
-        try {element.focus();}
-        catch(err) {} // eslint-disable-line no-empty
-
-        if (document.activeElement == element && element !== root) return true;
-
-        const candidates = element.children;
-        for (let candidate of candidates) {
-            if (focusFirst(candidate, root)) return true;
-        }
-        return false;
-    };
+    const prefixCls = 'ivu-navbar';
 
     export default {
         name: 'Tabs',
         mixins: [ Emitter ],
-        components: { Icon, Render },
         props: {
             value: {
                 type: [String, Number]
             },
             type: {
                 validator (value) {
-                    return oneOf(value, ['line', 'card']);
-                },
-                default: 'line'
-            },
-            size: {
-                validator (value) {
-                    return oneOf(value, ['small', 'default']);
+                    return oneOf(value, ['button', 'default']);
                 },
                 default: 'default'
-            },
-            animated: {
-                type: Boolean,
-                default: true
-            },
-            captureFocus: {
-                type: Boolean,
-                default: false
             },
             closable: {
                 type: Boolean,
                 default: false
-            },
-            beforeRemove: Function,
+            }
         },
         data () {
             return {
@@ -102,13 +51,10 @@
                 barWidth: 0,
                 barOffset: 0,
                 activeKey: this.value,
-                focusedKey: this.value,
-                showSlot: false,
                 navStyle: {
                     transform: ''
                 },
-                scrollable: false,
-                transitioning: false,
+                scrollable: false
             };
         },
         computed: {
@@ -116,9 +62,7 @@
                 return [
                     `${prefixCls}`,
                     {
-                        [`${prefixCls}-card`]: this.type === 'card',
-                        [`${prefixCls}-mini`]: this.size === 'small' && this.type === 'line',
-                        [`${prefixCls}-no-animation`]: !this.animated
+                        [`${prefixCls}-card`]: this.type === 'button'
                     }
                 ];
             },
@@ -126,68 +70,34 @@
                 return [
                     `${prefixCls}-content`,
                     {
-                        [`${prefixCls}-content-animated`]: this.animated
-                    }
-                ];
-            },
-            barClasses () {
-                return [
-                    `${prefixCls}-ink-bar`,
-                    {
-                        [`${prefixCls}-ink-bar-animated`]: this.animated
+                        [`${prefixCls}-content-animated`]: true
                     }
                 ];
             },
             contentStyle () {
-                const x = this.getTabIndex(this.activeKey);
+                const x = this.navList.findIndex((nav) => nav.name === this.activeKey);
                 const p = x === 0 ? '0%' : `-${x}00%`;
 
                 let style = {};
                 if (x > -1) {
                     style = {
-                        transform: `translateX(${p}) translateZ(0px)`,
+                        transform: `translateX(${p}) translateZ(0px)`
                     };
-
-                    this.setPanelVisibleInIe();
                 }
                 return style;
             },
             barStyle () {
                 let style = {
-                    visibility: 'hidden',
+                    display: 'none',
                     width: `${this.barWidth}px`
                 };
-                if (this.type === 'line') style.visibility = 'visible';
-                if (this.animated && !Utils.checkIsIe9()) {
-                    style.transform = `translate3d(${this.barOffset}px, 0px, 0px)`;
-                } else {
-                    style.left = `${this.barOffset}px`;
-                }
+                if (this.type === 'line') style.display = 'block';
 
+                style.left = `${this.barOffset}px`;
                 return style;
             }
         },
         methods: {
-            setPanelVisibleInIe(){
-                if(Utils.checkIsIe9()){
-                    let x = this.getTabIndex(this.activeKey);
-                    let panes = this.$refs.panes;
-                    let paneChildren = [];
-                    if(panes){
-                        paneChildren = panes.children;
-                    }
-                    let count = paneChildren.length;
-                    if(count > 0){
-                        for(let i=0; i<count; i++){
-                            if(i !== x){
-                                paneChildren[i].style.display = 'none';
-                            }else{
-                                paneChildren[i].style.display = 'block';
-                            }
-                        }
-                    }
-                }
-            },
             getTabs () {
                 return this.$children.filter(item => item.$options.name === 'TabPane');
             },
@@ -200,7 +110,7 @@
                         if (paneLabel) {
                             label = function() {
                                 return paneLabel;
-                            };
+                            }; 
                         }
                     }
                     this.navList.push({
@@ -221,7 +131,7 @@
             },
             updateBar () {
                 this.$nextTick(() => {
-                    const index = this.getTabIndex(this.activeKey);
+                    const index = this.navList.findIndex((nav) => nav.name === this.activeKey);
                     if (!this.$refs.nav) return;  // 页面销毁时，这里会报错，为了解决 #2100
                     const prevTabs = this.$refs.nav.querySelectorAll(`.${prefixCls}-tab`);
                     const tab = prevTabs[index];
@@ -229,7 +139,7 @@
 
                     if (index > 0) {
                         let offset = 0;
-                        const gutter = this.size === 'small' ? 0 : 16;
+                        const gutter =  16;
                         for (let i = 0; i < index; i++) {
                             offset += parseFloat(prevTabs[i].offsetWidth) + gutter;
                         }
@@ -243,59 +153,25 @@
             },
             updateStatus () {
                 const tabs = this.getTabs();
-                tabs.forEach(tab => tab.show = (tab.currentName === this.activeKey) || this.animated);
+                tabs.forEach(tab => tab.show = (tab.currentName === this.activeKey) );
             },
             tabCls (item) {
-                console.log(this.activeKey,item)
                 return [
                     `${prefixCls}-tab`,
                     {
                         [`${prefixCls}-tab-disabled`]: item.disabled,
-                        [`${prefixCls}-tab-active`]: item.name === this.activeKey,
-                        [`${prefixCls}-tab-focused`]: item.name === this.focusedKey,
+                        [`${prefixCls}-tab-active`]: item.name === this.activeKey
                     }
                 ];
             },
             handleChange (index) {
-                if (this.transitioning) return;
-
-                this.transitioning = true;
-                setTimeout(() => this.transitioning = false, transitionTime);
-
                 const nav = this.navList[index];
                 if (nav.disabled) return;
                 this.activeKey = nav.name;
                 this.$emit('input', nav.name);
                 this.$emit('on-click', nav.name);
             },
-            handleTabKeyNavigation(e){
-                if (e.keyCode !== 37 && e.keyCode !== 39) return;
-                const direction = e.keyCode === 39 ? 1 : -1;
-                const nextTab = getNextTab(this.navList, this.focusedKey, direction);
-                this.focusedKey = nextTab.name;
-            },
-            handleTabKeyboardSelect(init = false){
-                if (init) return;
-                const focused = this.focusedKey || 0;
-                const index = this.getTabIndex(focused);
-                this.handleChange(index);
-            },
             handleRemove (index) {
-                if (!this.beforeRemove) {
-                    return this.handleRemoveTab(index);
-                }
-
-                const before = this.beforeRemove(index);
-
-                if (before && before.then) {
-                    before.then(() => {
-                        this.handleRemoveTab(index);
-                    });
-                } else {
-                    this.handleRemoveTab(index);
-                }
-            },
-            handleRemoveTab (index) {
                 const tabs = this.getTabs();
                 const tab = tabs[index];
                 tab.$destroy();
@@ -363,9 +239,6 @@
                     ? Number(navStyle.transform.match(/translateX\(-(\d+(\.\d+)*)px\)/)[1])
                     : 0;
             },
-            getTabIndex(name){
-                return this.navList.findIndex(nav => nav.name === name);
-            },
             setOffset(value) {
                 this.navStyle.transform = `translateX(-${value}px)`;
             },
@@ -424,41 +297,22 @@
                     parentNode = parentNode.parentNode;
                 }
                 return false;
-            },
-            updateVisibility(index){
-                [...this.$refs.panes.children].forEach((el, i) => {
-                    if (index === i) {
-                        [...el.children].filter(child=> child.classList.contains(`${prefixCls}-tabpane`)).forEach(child => child.style.visibility = 'visible');
-                        if (this.captureFocus) setTimeout(() => focusFirst(el, el), transitionTime);
-                    } else {
-                        setTimeout(() => {
-                            [...el.children].filter(child=> child.classList.contains(`${prefixCls}-tabpane`)).forEach(child => child.style.visibility = 'hidden');
-                        }, transitionTime);
-                    }
-                });
             }
         },
         watch: {
             value (val) {
                 this.activeKey = val;
-                this.focusedKey = val;
             },
-            activeKey (val) {
-                this.focusedKey = val;
+            activeKey () {
                 this.updateBar();
                 this.updateStatus();
                 this.broadcast('Table', 'on-visible-change', true);
                 this.$nextTick(() => {
                     this.scrollToActiveTab();
                 });
-
-                // update visibility
-                const nextIndex = Math.max(this.getTabIndex(this.focusedKey), 0);
-                this.updateVisibility(nextIndex);
             }
         },
         mounted () {
-            this.showSlot = this.$slots.extra !== undefined;
             this.observer = elementResizeDetectorMaker();
             this.observer.listenTo(this.$refs.navWrap, this.handleResize);
 
@@ -473,11 +327,6 @@
 
                 this.mutationObserver.observe(hiddenParentNode, { attributes: true, childList: true, characterData: true, attributeFilter: ['style'] });
             }
-
-            this.handleTabKeyboardSelect(true);
-            this.updateVisibility(this.getTabIndex(this.activeKey));
-
-            this.setPanelVisibleInIe();
         },
         beforeDestroy() {
             this.observer.removeListener(this.$refs.navWrap, this.handleResize);

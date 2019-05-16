@@ -65,10 +65,15 @@ nav {
                 <li><router-link to="/color-picker">ColorPicker</router-link></li>
                 <li><router-link to="/auto-complete">AutoComplete</router-link></li>
                 <li><router-link to="/scroll">Scroll</router-link></li>
+
                 <li><router-link to="/divider">Divider</router-link></li>
                 <li><router-link to="/time">Time</router-link></li>
                 <li><router-link to="/cell">Cell</router-link></li>
                 <li><router-link to="/drawer">Drawer</router-link></li>
+
+                <li><router-link to="/navbar">Navbar</router-link></li>
+                <li><router-link to="/tree-select">TreeSelect</router-link></li>
+                
             </ul>
         </nav>
         <router-view></router-view>

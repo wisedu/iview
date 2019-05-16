@@ -215,13 +215,30 @@
             <Button type="default">Small</Button>
             <Button type="default">Small</Button>
         </Button-group>
+        <div style="height:100px">
+            <Button v-for="(item,index) in buttons" :key="item.id" :type="item.buttonType" :ref="item.id" @click="btnClickHandler(item,index)" :disabled="item.disabled" class="flow-button">{{item.name}}</Button>
+        </div>
     </div>
 </template>
 <script>
     export default {
+        data() {
+            return {
+                buttons: [
+                    {"id":'111',"buttonType":'primary',"name":"启动"},
+                    {"id":'222',"buttonType":'primary',"name":"快进"},
+                    {"id":'333',"buttonType":'primary',"name":"快退"},
+                    {"id":'444',"buttonType":'primary',"name":"暂停"}
+                ]
+            }
+        },
         methods: {
             hc (data) {
                 console.log(data);
+            },
+            btnClickHandler: function(item,index){
+                item.disabled = true;
+                this.$set(this.buttons, index, item)
             }
         }
     }

@@ -202,11 +202,7 @@
 <template>
     <div>
         {{ data1 }}
-        <Tree :data="data1">
-            <template slot-scop="scope">
-                <div>xxx</div>
-            </template>
-        </Tree>
+        <Tree :data="data1" show-checkbox></Tree>
     </div>
 </template>
 <script>
@@ -216,11 +212,9 @@
                 data1: [
                     {
                         title: 'parent 1',
-                        expand: true,
                         children: [
                             {
                                 title: 'parent 1-1',
-                                expand: true,
                                 children: [
                                     {
                                         title: 'leaf 1-1-1'
@@ -232,7 +226,6 @@
                             },
                             {
                                 title: 'parent 1-2',
-                                expand: true,
                                 children: [
                                     {
                                         title: 'leaf 1-2-1'

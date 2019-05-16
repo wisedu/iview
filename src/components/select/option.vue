@@ -74,6 +74,9 @@
                     value: this.value,
                     label: this.optionLabel,
                 });
+
+                // this.dispatch('iSelect', 'on-select-selected', this.value);
+                this.$emit('iOptionSelect',this.value); // 流程设计器需要修改 -- 王永建2019-5-15
             },
         },
         mounted () {

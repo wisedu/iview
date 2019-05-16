@@ -44,7 +44,7 @@
         data () {
             return {
                 tabs: 2,
-                name: 'b',
+                name: 'b'
             }
         },
         methods: {

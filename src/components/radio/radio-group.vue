@@ -18,7 +18,7 @@
         mixins: [ Emitter ],
         props: {
             value: {
-                type: [String, Number],
+                type: [String, Number,Boolean],
                 default: ''
             },
             size: {
@@ -70,7 +70,8 @@
                 this.childrens = findComponentsDownward(this, 'Radio');
                 if (this.childrens) {
                     this.childrens.forEach(child => {
-                        child.currentValue = this.currentValue === child.label;
+                        // child.currentValue = this.currentValue === child.label; // 流程设计器需要修改 -- 王永建2019-5-15
+                        child.currentValue = typeof child.value === 'boolean'?(this.currentValue === child.label):(this.currentValue === child.value);
                         child.group = true;
                     });
                 }

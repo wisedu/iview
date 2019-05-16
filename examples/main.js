@@ -219,6 +219,7 @@ const router = new VueRouter({
             component: (resolve) => require(['./routers/scroll.vue'], resolve)
         },
         {
+
             path: '/divider',
             component: (resolve) => require(['./routers/divider.vue'], resolve)
         },
@@ -233,6 +234,14 @@ const router = new VueRouter({
         {
             path: '/drawer',
             component: (resolve) => require(['./routers/drawer.vue'], resolve)
+        },{
+            path: '/navbar',
+            component: (resolve) => require(['./routers/navbar.vue'], resolve)
+        },
+        {
+            path: '/tree-select',
+            component: (resolve) => require(['./routers/tree-select.vue'], resolve)
+
         }
     ]
 });
