@@ -47,8 +47,8 @@
                         label: 'Canberra'
                     }
                 ],
-                model1: '',
-                model2: [],
+                model1: 'New York',
+                model2: ['New York','London'],
                 model10: [],
                 model11: [],
                 data1: [
