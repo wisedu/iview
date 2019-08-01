@@ -164,7 +164,6 @@
                     checked: !this.data.checked && !this.data.indeterminate,
                     nodeKey: this.data.nodeKey
                 };
-                console.log(changes,this.data)
                 this.dispatch('Tree', 'on-check', changes);
             }
         }

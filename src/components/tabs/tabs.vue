@@ -246,7 +246,6 @@
                 tabs.forEach(tab => tab.show = (tab.currentName === this.activeKey) || this.animated);
             },
             tabCls (item) {
-                console.log(this.activeKey,item)
                 return [
                     `${prefixCls}-tab`,
                     {
