@@ -1,6 +1,6 @@
 <template>
     <div>
-        <i-input></i-input>
+<!--         <i-input></i-input>
         <TabPane v-for="tab in tabs" :key="tab">标签{{ tab }}
             <template slot="label">{{'标签x' + tab}}</template>
         </TabPane>
@@ -19,7 +19,7 @@
             <TabPane label="标签一">标签一的内容</TabPane>
             <TabPane label="标签二" disabled>标签二的内容</TabPane>
             <TabPane label="标签三">标签三的内容</TabPane>
-        </Tabs>
+        </Tabs> -->
         <tabs v-model="name" type="card" @on-click="handleClick">
             <tab-pane name="a" label="标签一">
                 <div>1</div>
@@ -50,6 +50,9 @@
         methods: {
             handleTabsAdd () {
                 this.tabs ++;
+            },
+            handleClick (item) {
+                console.log(item)
             },
             handleBeforeRemove (index) {
                 console.log(index);

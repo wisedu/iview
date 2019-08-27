@@ -459,9 +459,11 @@
                 if (this.clearable) this.reset();
             },
             getOptionData(value){
-                const option = this.flatOptions.find(({componentOptions}) => componentOptions.propsData.value === value);
-                if (!option) return null;
-                const label = getOptionLabel(option);
+                // const option = this.flatOptions.find(({componentOptions}) => componentOptions.propsData.value === value); // find仅支持IE12  王永建 2019/8/27
+                let option = this.flatOptions.filter(({componentOptions}) => componentOptions.propsData.value === value);
+                if (!option || !option.length) return null;
+
+                const label = getOptionLabel(option[0]);
                 return {
                     value: value,
                     label: label,

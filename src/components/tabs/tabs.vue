@@ -363,7 +363,13 @@
                     : 0;
             },
             getTabIndex(name){
-                return this.navList.findIndex(nav => nav.name === name);
+                var index = -1;
+                this.navList.forEach(function(nav, idx) {
+                    if(nav.name === name) index = idx;
+                })
+                // var index = this.navList.findIndex(nav => nav.name === name); // findIndex仅支持IE12 王永建2019/8/27
+                console.log("this.navList:", this.navList);
+                return index;
             },
             setOffset(value) {
                 this.navStyle.transform = `translateX(-${value}px)`;
