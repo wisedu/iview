@@ -3,7 +3,7 @@
         <li
             :title="t('i.page.prev')"
             :class="prevClasses"
-            @click="prev">
+            @click.stop="prev">
             <a><i class="ivu-icon ivu-icon-ios-arrow-back"></i></a>
         </li>
         <div :class="simplePagerClasses" :title="currentPage + '/' + allPages">
@@ -12,16 +12,17 @@
                 :value="currentPage"
                 autocomplete="off"
                 spellcheck="false"
-                @keydown="keyDown"
-                @keyup="keyUp"
-                @change="keyUp">
+                @focus.stop="onFocus"
+                @keydown.stop="keyDown"
+                @keyup.stop="keyUp"
+                @change.stop="keyUp">
             <span>/</span>
             {{ allPages }}
         </div>
         <li
             :title="t('i.page.next')"
             :class="nextClasses"
-            @click="next">
+            @click.stop="next">
             <a><i class="ivu-icon ivu-icon-ios-arrow-forward"></i></a>
         </li>
     </ul>
@@ -307,6 +308,9 @@
                     e.target.value = page;
                     this.changePage(page);
                 }
+            },
+            onFocus (e) {
+                console.log(e)
             }
         }
     };
