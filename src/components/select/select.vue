@@ -645,8 +645,10 @@
                     if (this.remote) this.lastRemoteQuery = this.lastRemoteQuery || this.query;
                     else this.lastRemoteQuery = '';
 
-                    const valueIsSelected = this.values.find(({value}) => value === option.value);
-                    if (valueIsSelected){
+                    // const valueIsSelected = this.values.find(({value}) => value === option.value); // find仅支持IE12  王永建 2019/12/09
+                    const valueIsSelected = this.values.filter(({value}) => value === option.value);
+
+                    if (valueIsSelected && valueIsSelected.length){
                         this.values = this.values.filter(({value}) => value !== option.value);
                     } else {
                         this.values = this.values.concat(option);
